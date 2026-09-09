@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import operator
+from collections.abc import Awaitable, Callable
 from typing import Annotated, Literal, TypedDict
 
 from langgraph.graph import END, START, StateGraph
@@ -24,6 +25,7 @@ class ArenaGraphState(TypedDict, total=False):
     """Raw, inspectable facts shared between Arena workflow nodes."""
 
     agent_id: str
+    run_id: str
     run_mode: ArenaRunMode
     phase: str
     listings: list[ServiceListing]
@@ -42,23 +44,34 @@ def build_arena_graph(
     *,
     critique_strategy: CritiqueStrategy | None = None,
     market_strategy: MarketStrategy | None = None,
+    checkpointer=None,
 ):
     """Compile the Arena workflow with business-relevant, testable nodes."""
 
     critique_policy = critique_strategy or CritiqueStrategy()
     market_policy = market_strategy or MarketStrategy()
 
+    async def retry_idempotent(operation: Callable[[], Awaitable[object]]) -> object:
+        """Retry once; the caller must reuse the same idempotency key."""
+
+        try:
+            return await operation()
+        except (TimeoutError, ConnectionError):
+            return await operation()
+
     async def prepare(state: ArenaGraphState) -> ArenaGraphState:
         agent_id = state.get("agent_id")
         if not agent_id:
             raise ValueError("agent_id is required")
         run_mode = ArenaRunMode(state.get("run_mode", ArenaRunMode.FULL_DRY_RUN))
+        run_id = state.get("run_id") or f"{agent_id}:{run_mode.value}"
         progress = state.get("progress") or ArenaProgress(agent_id=agent_id)
         if progress.agent_id != agent_id:
             raise ValueError("progress belongs to a different agent_id")
         return {
             "phase": "discover",
             "run_mode": run_mode,
+            "run_id": run_id,
             "progress": progress.model_copy(deep=True),
             "rankings": [],
             "violations": [],
@@ -125,14 +138,20 @@ def build_arena_graph(
 
         progress = state["progress"].model_copy(deep=True)
         violations: list[str] = []
-        for listing in state["evaluation_targets"]:
+        for index, listing in enumerate(state["evaluation_targets"]):
             result = state["results"][listing.service_id]
             item = critique_policy.create(listing, result)
             progress.critiques.append(item)
+            idempotency_key = (
+                f"{state['run_id']}:feedback:{listing.seller_id}:{index}"
+            )
             try:
-                await client.post_critique(
-                    " ".join([item.evidence, item.disagreement, item.suggestion]),
-                    listing.seller_id,
+                await retry_idempotent(
+                    lambda: client.post_critique(
+                        " ".join([item.evidence, item.disagreement, item.suggestion]),
+                        listing.seller_id,
+                        idempotency_key=idempotency_key,
+                    )
                 )
             except Exception as exc:
                 violations.append(
@@ -151,8 +170,13 @@ def build_arena_graph(
             state["evaluation_targets"], state["results"]
         )
         violations: list[str] = []
+        idempotency_key = f"{state['run_id']}:ranking:final"
         try:
-            await client.submit_ranking(rankings)
+            await retry_idempotent(
+                lambda: client.submit_ranking(
+                    rankings, idempotency_key=idempotency_key
+                )
+            )
             progress.ranking_submitted = bool(rankings)
         except Exception as exc:
             violations.append(f"Could not submit ranking: {type(exc).__name__}")
@@ -191,9 +215,15 @@ def build_arena_graph(
         violations: list[str] = []
         seen_trade_ids = {receipt.trade_id for receipt in progress.receipts}
 
-        for intent in state["purchase_plan"]:
+        for index, intent in enumerate(state["purchase_plan"]):
+            idempotency_key = f"{state['run_id']}:purchase:{intent.service_id}:{index}"
             try:
-                receipt = await client.buy(listings[intent.service_id])
+                receipt = await retry_idempotent(
+                    lambda: client.buy(
+                        listings[intent.service_id],
+                        idempotency_key=idempotency_key,
+                    )
+                )
             except Exception as exc:
                 violations.append(
                     f"Purchase of {intent.service_id} failed: {type(exc).__name__}"
@@ -275,4 +305,4 @@ def build_arena_graph(
     graph.add_conditional_edges("plan_market", after_market_plan)
     graph.add_edge("purchase", "audit")
     graph.add_edge("audit", END)
-    return graph.compile()
+    return graph.compile(checkpointer=checkpointer)

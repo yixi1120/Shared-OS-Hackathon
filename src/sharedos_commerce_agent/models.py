@@ -5,7 +5,7 @@ from enum import Enum
 from typing import Any
 from uuid import uuid4
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 def utc_now() -> datetime:
@@ -34,14 +34,23 @@ class OrderStatus(str, Enum):
     FAILED = "failed"
 
 
-class TransactionStage(str, Enum):
-    REQUESTED = "requested"
-    QUOTED = "quoted"
-    ACCEPTED = "accepted"
-    PAID = "paid"
-    DELIVERED = "delivered"
-    ACKNOWLEDGED = "acknowledged"
+class InteractionStage(str, Enum):
+    TASK_CREATED = "task_created"
+    REQUEST_RECEIVED = "request_received"
+    QUOTE_DECLARED = "quote_declared"
+    TASK_STARTED = "task_started"
+    ARTIFACT_DELIVERED = "artifact_delivered"
+    BUYER_ACKNOWLEDGED = "buyer_acknowledged"
+    TASK_COMPLETED = "task_completed"
+    TASK_FAILED = "task_failed"
     DISPUTED = "disputed"
+
+
+class EvidenceProvenance(str, Enum):
+    PLATFORM = "platform"
+    OBSERVED = "observed"
+    BILATERAL = "bilateral"
+    SELF_REPORTED = "self_reported"
 
 
 class ServiceListing(BaseModel):
@@ -133,35 +142,64 @@ class TradeReceipt(BaseModel):
     seller_id: str
     service_id: str
     amount: int = Field(ge=1, le=100)
-    status: OrderStatus = OrderStatus.PAID
+    status: OrderStatus = OrderStatus.ACCEPTED
     created_at: datetime = Field(default_factory=utc_now)
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
-class TransactionEvent(BaseModel):
-    """One consented, machine-observable event from a routed transaction."""
+class InteractionEventSubmission(BaseModel):
+    """Untrusted event payload accepted from an external caller."""
 
-    transaction_id: str
-    subject_agent_id: str
-    stage: TransactionStage
+    # Unknown fields are discarded before persistence. In particular, an external
+    # caller cannot inject the trusted-only `provenance` field.
+    model_config = ConfigDict(extra="ignore")
+
+    task_id: str = Field(min_length=1, max_length=256)
+    subject_agent_id: str = Field(min_length=1, max_length=256)
+    stage: InteractionStage
     occurred_at: datetime
-    amount: int | None = Field(default=None, ge=1, le=100)
-    latency_ms: int | None = Field(default=None, ge=0)
     schema_valid: bool = True
-    evidence_id: str | None = None
+    evidence_id: str | None = Field(default=None, max_length=256)
+    request_hash: str | None = Field(default=None, max_length=256)
+    artifact_hash: str | None = Field(default=None, max_length=256)
 
 
-class TransactionTraceReport(BaseModel):
-    transaction_id: str
+class InteractionTraceInput(BaseModel):
+    """Bounded, content-minimized input accepted by both trace services."""
+
+    model_config = ConfigDict(extra="ignore")
+    events: list[InteractionEventSubmission] = Field(min_length=1, max_length=200)
+
+    @model_validator(mode="after")
+    def one_task_and_subject_per_report(self) -> "InteractionTraceInput":
+        if len({event.task_id for event in self.events}) != 1:
+            raise ValueError("all events must belong to one task_id")
+        if len({event.subject_agent_id for event in self.events}) != 1:
+            raise ValueError("all events must describe one subject_agent_id")
+        return self
+
+
+class InteractionEvent(InteractionEventSubmission):
+    """Event enriched with provenance assigned by a trusted ingestion boundary."""
+
+    provenance: EvidenceProvenance
+
+
+class InteractionTraceReport(BaseModel):
+    task_id: str
     subject_agent_id: str
     completed: bool
+    delivered: bool
     ordered: bool
     schema_valid_rate: float = Field(ge=0, le=1)
-    price_consistent: bool
     disputed: bool
     end_to_end_latency_ms: int | None = Field(default=None, ge=0)
-    reliability_score: float = Field(ge=0, le=100)
+    execution_score: float = Field(ge=0, le=100)
+    evidence_weight: float = Field(ge=0, le=1)
     confidence: str
+    reputation_eligible: bool
+    credit_settlement: str = "not_evaluated"
+    provenance_counts: dict[str, int] = Field(default_factory=dict)
     evidence_ids: list[str] = Field(default_factory=list)
     risk_flags: list[str] = Field(default_factory=list)
 

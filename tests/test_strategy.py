@@ -9,7 +9,7 @@ def test_quote_and_negotiation_respect_floor() -> None:
     policy = PricingPolicy(base_price=12)
     quote = policy.quote(
         QuoteRequest(
-            buyer_id="buyer", service_id="verified-transaction-trace", budget=50
+            buyer_id="buyer", service_id="a2a-interaction-trace", budget=50
         ),
         first_purchase=True,
     )

@@ -59,7 +59,22 @@ class Ledger:
                 "SELECT * FROM trades WHERE idempotency_key = ?", (idempotency_key,)
             ).fetchone()
             if existing:
-                return self._from_row(existing)
+                stored = self._from_row(existing)
+                comparable_fields = (
+                    "buyer_id",
+                    "seller_id",
+                    "service_id",
+                    "amount",
+                    "metadata",
+                )
+                if any(
+                    getattr(stored, field) != getattr(receipt, field)
+                    for field in comparable_fields
+                ):
+                    raise ValueError(
+                        "idempotency key was already used for a different order"
+                    )
+                return stored
             connection.execute(
                 """
                 INSERT INTO trades (

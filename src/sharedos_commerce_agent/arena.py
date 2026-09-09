@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 from typing import Protocol
+from uuid import uuid4
+
+from langgraph.checkpoint.memory import InMemorySaver
 
 from .models import (
     ArenaProgress,
@@ -21,11 +24,17 @@ class ArenaClient(Protocol):
 
     async def invoke_service(self, listing: ServiceListing) -> ServiceResult: ...
 
-    async def post_critique(self, critique_text: str, product_id: str) -> None: ...
+    async def post_critique(
+        self, critique_text: str, product_id: str, *, idempotency_key: str
+    ) -> None: ...
 
-    async def submit_ranking(self, rankings: list[RankingEntry]) -> None: ...
+    async def submit_ranking(
+        self, rankings: list[RankingEntry], *, idempotency_key: str
+    ) -> None: ...
 
-    async def buy(self, listing: ServiceListing) -> TradeReceipt: ...
+    async def buy(
+        self, listing: ServiceListing, *, idempotency_key: str
+    ) -> TradeReceipt: ...
 
 
 class ArenaRunner:
@@ -35,10 +44,12 @@ class ArenaRunner:
         *,
         critique_strategy: CritiqueStrategy | None = None,
         market_strategy: MarketStrategy | None = None,
+        checkpointer=None,
     ) -> None:
         self.client = client
         self.critique_strategy = critique_strategy or CritiqueStrategy()
         self.market_strategy = market_strategy or MarketStrategy()
+        self.checkpointer = checkpointer or InMemorySaver()
 
     async def run(self, agent_id: str) -> ArenaReport:
         return await self.run_round(agent_id, ArenaRunMode.FULL_DRY_RUN)
@@ -49,6 +60,7 @@ class ArenaRunner:
         mode: ArenaRunMode,
         *,
         progress: ArenaProgress | None = None,
+        run_id: str | None = None,
     ) -> ArenaReport:
         # Local import avoids a module cycle: graph nodes depend on ArenaClient.
         from .graph import build_arena_graph
@@ -57,9 +69,33 @@ class ArenaRunner:
             self.client,
             critique_strategy=self.critique_strategy,
             market_strategy=self.market_strategy,
+            checkpointer=self.checkpointer,
         )
-        graph_input = {"agent_id": agent_id, "run_mode": mode}
+        active_run_id = run_id or str(uuid4())
+        graph_input = {
+            "agent_id": agent_id,
+            "run_id": active_run_id,
+            "run_mode": mode,
+        }
         if progress is not None:
             graph_input["progress"] = progress
-        state = await graph.ainvoke(graph_input)
+        config = {"configurable": {"thread_id": active_run_id}}
+        state = await graph.ainvoke(graph_input, config=config)
+        return state["report"]
+
+    async def resume(self, run_id: str) -> ArenaReport:
+        """Resume the unfinished graph identified by a previously persisted run ID."""
+
+        from .graph import build_arena_graph
+
+        graph = build_arena_graph(
+            self.client,
+            critique_strategy=self.critique_strategy,
+            market_strategy=self.market_strategy,
+            checkpointer=self.checkpointer,
+        )
+        config = {"configurable": {"thread_id": run_id}}
+        state = await graph.ainvoke(None, config=config)
+        if "report" not in state:
+            raise RuntimeError(f"Arena run {run_id} did not reach its audit report")
         return state["report"]

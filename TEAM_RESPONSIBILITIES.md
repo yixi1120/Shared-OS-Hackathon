@@ -16,8 +16,8 @@
 
 我们的比赛版产品定位为：
 
-> **Verified Agent Transaction Intelligence**  
-> 其他 Agent 通过我方节点传递一笔交易的结构化生命周期事件；我方基于真实执行证据生成交易 trace、风险标记和可解释的可靠性指标。
+> **Verified A2A Interaction Intelligence**
+> 其他 Agent 通过我方节点执行 A2A Task；我方基于可观察的任务状态、Artifact、延迟、schema 和证据来源生成 trace 与风险标记，不自行声称验证付款。
 
 长期可以发展为 Verified Agent Reputation Network，但本次 Arena 优先出售能够立即产生价值的风险分析和购买决策服务。
 
@@ -57,7 +57,7 @@ Agent 功能分成两个方向，但不构建两个互相用自然语言沟通�
 ```
 
 - **Outbound**：主动体验、评价、排名和购买其他产品。
-- **Inbound**：让其他 Agent 经我方节点完成或上报一笔交易，采集最小化、可验证的生命周期事件，并自动交付 trace/risk report。
+- **Inbound**：让其他 Agent 经我方节点执行 A2A Task，采集最小化的可观察事件，并自动交付 interaction trace/risk report。
 - 两个方向在 Market Round 必须并发运行，不能因为我方 Agent 正在购物而停止接单。
 
 ---
@@ -79,8 +79,8 @@ Agent 功能分成两个方向，但不构建两个互相用自然语言沟通�
 - 选择至少 3 个不同产品进行真实调用。
 - 将“执行探测”和“赛制要求的 critique”拆成不同节点：先记录成功、延迟、schema 和 receipt，再生成具体 disagreement。
 - 对其他产品进行评分并提交 ranking。
-- 保证主观 critique 不进入我方交易可靠性评分。
-- 与思棋共同冻结 TransactionEvent 输入及 TransactionTraceReport 输出协议。
+- 保证主观 critique 不进入我方 interaction execution score。
+- 与思棋共同冻结 InteractionEvent 输入、provenance 和 InteractionTraceReport 输出协议。
 - Round 2 生成 80–100 credits 的购买计划。
 - 保证至少购买 3 个不同产品。
 - 根据价格、证据、信誉、延迟和任务价值计算 Expected Utility。
@@ -147,19 +147,20 @@ Agent 功能分成两个方向，但不构建两个互相用自然语言沟通�
 - 验证 discovery 和 invoke 分别受到授权控制。
 - 保存必要的 authorization decision 和 audit reference。
 - 对接官方最终 Arena endpoint 和 payload schema。
-- 第一优先确认 SharedOS 是否提供交易 lifecycle hook、callback、签名 receipt 或可信事件来源。
+- 第一优先确认 SharedOS/A2A 是否提供 Task lifecycle hook、callback、认证身份或可信事件来源。
+- 第一优先确认 Arena 是否独立提供 credits 结算 API、receipt 和幂等语义；我方不自建余额或托管系统。
 - 明确数据可信度优先级：平台事件/签名 receipt > 双方共同确认 > 单方自报；输出中必须保留 provenance。
 
 #### Commerce Runtime
 
 - 实现服务目录和机器可读 description。
-- 实现 Quote、Negotiation、Order、Delivery 和 Receipt API。
-- 实现交易状态：quoted、accepted、paid、delivered、failed、disputed。
-- 实现 idempotency key，防止重复扣款和重复交付。
+- 按官方合同适配 Quote、Order、Delivery 和 Receipt；没有官方字段时不得自行伪造已付款状态。
+- A2A 层实现 task_created、request_received、task_started、artifact_delivered、task_completed、task_failed、disputed。
+- 对官方支持幂等的副作用传递稳定 idempotency key，防止重复发布、购买或交付。
 - 维护 SQLite；如果并发需要，再迁移 PostgreSQL。
-- 实现 Transaction Session 与 Event Ingestion 接口，使交易可以经我方节点留下结构化事件。
+- 实现 A2A Interaction Session 与可信 Event Ingestion，使经过我方节点的 Task 留下结构化证据。
 - 对事件执行身份、授权、去重、阶段顺序和幂等校验。
-- 实现 Verified Transaction Trace，并保存其原始证据引用和 provenance。
+- 实现 A2A Interaction Trace，并保存原始证据引用、hash 和 provenance。
 - 实现 Reputation 查询接口。
 - 只采集评分所需元数据，不默认保存 prompt、商业秘密或完整交付内容。
 - 实现 health check、结构化日志和错误记录。
@@ -188,8 +189,8 @@ Agent 功能分成两个方向，但不构建两个互相用自然语言沟通�
 ### 完成标准
 
 - 其他 Agent 可以发现并调用至少一项服务。
-- 相同 idempotency key 不会生成两笔交易。
-- 每个 Reputation 事件都能追溯到唯一 receipt。
+- 相同 idempotency key 不会重复产生我方副作用。
+- 每个 Reputation 事件都能追溯到唯一 task、evidence ID 和 provenance。
 - 能区分平台验证、双方确认和单方自报事件，不能把三者当作同等级证据。
 - 重复、伪造或乱序 event 不会进入有效 trace。
 - 未授权、超时和交付失败都有明确状态。
@@ -210,7 +211,7 @@ Agent 功能分成两个方向，但不构建两个互相用自然语言沟通�
 
 ### 最终责任
 
-让其他 Agent 在很短时间内理解为什么要让交易经过我方验证节点、愿意购买，并能低摩擦地获得可验证报告。
+让其他 Agent 在很短时间内理解为什么要让 A2A Task 经过我方观测节点、愿意购买，并能低摩擦地获得证据化报告。
 
 ### 必须完成
 
@@ -254,7 +255,7 @@ Agent 功能分成两个方向，但不构建两个互相用自然语言沟通�
 
 - 其他 Agent 仅阅读服务描述即可知道输入、输出、价格和价值。
 - 所有宣传承诺都有实际 API 输出支持。
-- 其他 Agent 能在一次机器可读交互内理解并提交合法 TransactionEvent。
+- 其他 Agent 能在一次机器可读交互内理解并提交合法 InteractionEvent。
 - Agent 能自动回应至少五类常见 Critique。
 - 每项服务的交付时间适合一小时 Market Round。
 - 提交资料包含所有官方必填标识。
@@ -269,21 +270,21 @@ Agent 功能分成两个方向，但不构建两个互相用自然语言沟通�
 
 ---
 
-## 7. 思棋：Transaction Intelligence、Reputation 与商业机制
+## 7. 思棋：Interaction Intelligence、Reputation 与商业机制
 
 ### 最终责任
 
-保证我们的服务只根据可观察、可追溯的交易事实生成可靠性结论，并正确表达样本量、来源和不确定性。
+保证我们的服务只根据可观察、可追溯的 A2A Task 事实生成可靠性结论，并正确表达样本量、来源和不确定性。
 
 ### 必须完成
 
-#### 单笔交易证据
+#### 单次交互证据
 
-- 冻结 TransactionEvent、TransactionTraceReport 和风险标记定义。
-- 定义 requested、quoted、accepted、paid、delivered、acknowledged、disputed 的合法顺序。
-- 定义完成度、价格一致性、延迟、schema 合规和争议的确定性计算。
+- 冻结 InteractionEvent、InteractionTraceReport 和风险标记定义。
+- 定义 task_created、request_received、task_started、artifact_delivered、task_completed、task_failed、disputed 的合法顺序。
+- 定义完成度、Artifact 交付、延迟、schema 合规和争议的确定性计算。
 - 区分平台验证、双方确认和单方自报证据，并定义不同证据权重。
-- 明确单笔报告只说明该笔交易，不能代表全局信誉。
+- 明确单次报告只说明该次交互，不能代表全局信誉或 credits 结算。
 
 #### Reputation 机制
 
@@ -308,7 +309,7 @@ Agent 功能分成两个方向，但不构建两个互相用自然语言沟通�
 ### 具体交付物
 
 - Reputation V1 公式和指标定义。
-- Transaction Trace V1 公式和风险标记定义。
+- Interaction Trace V1 公式和风险标记定义。
 - 证据来源等级与置信度映射。
 - 至少 10 个评分测试案例及预期结果。
 - 基础反刷分规则。
@@ -320,9 +321,9 @@ Agent 功能分成两个方向，但不构建两个互相用自然语言沟通�
 
 - 相同数据始终得到相同分数。
 - 评分同时展示样本量和置信度。
-- 0、1、10、100 笔交易时的变化合理。
-- 一次低价刷单不能显著提高信誉。
-- 单笔 trace 能产生有用结果，但只能显示 `single-transaction` 置信度。
+- 0、1、10、100 次交互时的变化合理。
+- 一次自报或重复交互不能显著提高信誉。
+- 单次 trace 能产生有用结果，但必须显示 `single-interaction` 和 provenance。
 - 每个推荐结果都能解释使用了哪些证据。
 
 ### 不负责
@@ -338,43 +339,48 @@ Agent 功能分成两个方向，但不构建两个互相用自然语言沟通�
 
 | 服务 | 解决的问题 | 建议价格 |
 |---|---|---:|
-| Verified Transaction Trace | 对方经我方节点提交交易事件；验证阶段顺序、价格、交付、延迟与 schema | 5–7 credits |
-| Transaction Risk Report | 基于同一 trace 输出机器可读风险标记和证据引用 | 7–9 credits |
+| A2A Interaction Trace | 对方经我方节点执行 Task；验证阶段顺序、Artifact、延迟、schema 与 provenance | 5–7 credits |
+| A2A Interaction Risk Report | 基于同一 trace 输出机器可读风险标记和证据引用 | 7–9 credits |
 | Reputation Snapshot | 聚合多笔已验证 trace，输出分数、样本量和置信度 | 8–12 credits |
 
 比赛期间优先保证前两项。Reputation Snapshot 必须在已有多笔 trace 时才生成；长期 Reputation Network 不得阻塞可出售服务上线。
 
 ## 9. 四人共同冻结的数据协议
 
-### TransactionEvent
+### InteractionEvent
 
 ```json
 {
-  "transaction_id": "string",
+  "task_id": "string",
   "subject_agent_id": "string",
-  "stage": "quoted|accepted|paid|delivered|acknowledged|disputed",
+  "stage": "task_created|request_received|task_started|artifact_delivered|buyer_acknowledged|task_completed|task_failed|disputed",
   "occurred_at": "ISO-8601 timestamp",
-  "amount": 10,
   "schema_valid": true,
   "evidence_id": "string",
-  "provenance": "platform|bilateral|self_reported"
+  "request_hash": "string|null",
+  "artifact_hash": "string|null",
+  "provenance": "platform|observed|bilateral|self_reported"
 }
 ```
 
-### TransactionTraceReport
+### InteractionTraceReport
 
 ```json
 {
-  "transaction_id": "string",
+  "task_id": "string",
   "subject_agent_id": "string",
   "completed": true,
+  "delivered": true,
   "ordered": true,
   "schema_valid_rate": 1.0,
-  "price_consistent": true,
   "disputed": false,
   "end_to_end_latency_ms": 850,
-  "reliability_score": 93.2,
-  "confidence": "single-transaction",
+  "execution_score": 93.2,
+  "evidence_weight": 0.9,
+  "confidence": "service-observed-single-interaction",
+  "reputation_eligible": true,
+  "credit_settlement": "not_evaluated",
+  "provenance_counts": {"observed": 4},
   "evidence_ids": ["string"],
   "risk_flags": []
 }
@@ -395,7 +401,7 @@ Agent 功能分成两个方向，但不构建两个互相用自然语言沟通�
 }
 ```
 
-### TransactionReceipt
+### ArenaSettlementReceipt（仅在主办方提供时使用）
 
 ```json
 {
@@ -420,7 +426,7 @@ Agent 功能分成两个方向，但不构建两个互相用自然语言沟通�
   "agent_id": "string",
   "trust_score": 78.5,
   "confidence": "medium",
-  "verified_transactions": 12,
+  "verified_interactions": 12,
   "success_rate": 0.917,
   "median_latency_ms": 1200,
   "repeat_buyer_rate": 0.33,
@@ -438,7 +444,7 @@ Agent 功能分成两个方向，但不构建两个互相用自然语言沟通�
 - 雅婷完成 SharedNet 注册、node ID、SharedOS Cloud 基础部署。
 - 子洋完成两个 round 的最低合规状态机。
 - 冠盛完成至少一项可发现、可理解的服务描述。
-- 思棋提供最小可运行的 Transaction Trace 评分与风险标记规则。
+- 思棋提供最小可运行的 Interaction Trace 评分、provenance 和风险标记规则。
 
 ### 阶段 B：跑通买卖闭环
 
@@ -447,9 +453,10 @@ Agent 功能分成两个方向，但不构建两个互相用自然语言沟通�
 → 自动询价
 → 自动下单
 → SharedOS 授权
-→ 交易事件经我方节点记录
-→ 自动生成 Transaction Trace / Risk Report
-→ 生成 Receipt 并交付
+→ A2A Task 事件经我方节点记录
+→ 自动生成 Interaction Trace / Risk Report
+→ 交付报告
+→ 若 Arena 提供结算 receipt，再关联官方 receipt
 → 记录收入
 ```
 
@@ -466,7 +473,7 @@ Agent 功能分成两个方向，但不构建两个互相用自然语言沟通�
 ### 阶段 C：提高获胜概率
 
 - 优化服务说明和自动 Pitch。
-- 聚合多笔有效 trace，验证 Reputation Snapshot 的样本量和置信度。
+- 聚合多次 reputation-eligible trace，验证 Reputation Snapshot 的样本量和置信度。
 - 对多个价格运行 Harness。
 - 加入 Critique Defense 和 Upsell。
 
@@ -493,7 +500,8 @@ Agent 功能分成两个方向，但不构建两个互相用自然语言沟通�
 - [ ] Agent 已在 SharedNet 注册并可发现。
 - [ ] 产品已在 SharedOS Cloud 运行。
 - [ ] 至少一项服务可以由外部 Agent 成功调用。
-- [ ] 已确认可信交易事件来自 lifecycle hook、签名 receipt、双方确认还是单方自报。
+- [ ] 已确认可信 Task 事件来自 lifecycle hook、认证请求、双方确认还是单方自报。
+- [ ] 已确认 credits 结算是否由 Arena 提供，且我方没有伪造付款状态。
 - [ ] 重复、乱序和伪造事件测试已通过。
 - [ ] 数据库、模型和网络连接正常。
 - [ ] Inbound 和 Outbound 可以并发运行。
@@ -512,12 +520,12 @@ Agent 功能分成两个方向，但不构建两个互相用自然语言沟通�
 
 ### 思棋检查产品机制
 
-- [ ] Transaction Trace 评分和风险标记可以逐项解释。
-- [ ] 单笔交易只显示 `single-transaction`，不冒充全局信誉。
+- [ ] Interaction Trace 评分和风险标记可以逐项解释。
+- [ ] 单次交互只显示 `single-interaction`，不冒充全局信誉。
 - [ ] provenance 和置信度规则已冻结。
 - [ ] 没有付费买高分机制。
 - [ ] 价格适合 100-credit 市场。
-- [ ] TransactionEvent、TraceReport 和 ReputationSnapshot schema 已冻结。
+- [ ] InteractionEvent、InteractionTraceReport 和 ReputationSnapshot schema 已冻结。
 
 ## 12. 必须向主办方确认
 

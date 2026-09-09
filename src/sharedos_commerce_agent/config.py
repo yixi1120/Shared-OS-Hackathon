@@ -15,7 +15,9 @@ class Settings:
     arena_base_url: str | None = None
     arena_api_token: str | None = None
     agent_node_id: str | None = None
+    seller_api_token: str | None = None
     ledger_path: str = "./commerce.sqlite3"
+    checkpoint_path: str = "./checkpoints.sqlite3"
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -39,5 +41,9 @@ class Settings:
             arena_base_url=os.getenv("ARENA_BASE_URL") or None,
             arena_api_token=os.getenv("ARENA_API_TOKEN") or None,
             agent_node_id=os.getenv("AGENT_NODE_ID") or None,
+            seller_api_token=os.getenv("SELLER_API_TOKEN") or None,
             ledger_path=os.getenv("LEDGER_PATH", defaults.ledger_path),
+            checkpoint_path=os.getenv(
+                "CHECKPOINT_PATH", defaults.checkpoint_path
+            ),
         )

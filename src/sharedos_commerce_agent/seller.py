@@ -6,15 +6,17 @@ from .ledger import Ledger
 from pydantic import TypeAdapter
 
 from .models import (
+    EvidenceProvenance,
+    InteractionEvent,
+    InteractionEventSubmission,
     OrderStatus,
     Quote,
     QuoteRequest,
     ServiceListing,
     TradeReceipt,
-    TransactionEvent,
 )
 from .strategy import PricingPolicy
-from .telemetry import evaluate_transaction_trace
+from .telemetry import evaluate_interaction_trace
 
 
 SELLER_ID = "agent-commerce-network"
@@ -22,28 +24,28 @@ SELLER_ID = "agent-commerce-network"
 
 CATALOG = [
     ServiceListing(
-        service_id="verified-transaction-trace",
+        service_id="a2a-interaction-trace",
         seller_id=SELLER_ID,
-        name="Verified Transaction Trace",
+        name="A2A Interaction Trace",
         description=(
-            "Validates a routed agent-to-agent transaction from structured lifecycle events "
-            "and returns deterministic reliability evidence and risk flags."
+            "Evaluates structured A2A task lifecycle evidence and reports execution quality, "
+            "provenance confidence, and machine-readable risk flags without claiming payment."
         ),
         price=6,
-        tags=["transaction", "telemetry", "reputation", "verification"],
-        evidence=["stage order", "price consistency", "latency", "schema validity"],
+        tags=["a2a", "task", "telemetry", "reputation", "verification"],
+        evidence=["task state", "artifact delivery", "latency", "schema validity"],
         reputation=0.8,
     ),
     ServiceListing(
-        service_id="transaction-risk-report",
+        service_id="a2a-interaction-risk-report",
         seller_id=SELLER_ID,
-        name="Transaction Risk Report",
+        name="A2A Interaction Risk Report",
         description=(
-            "Explains the objective risk flags in a verified transaction trace without "
-            "using subjective ratings in the reliability score."
+            "Explains objective risk flags in an A2A interaction trace and separates "
+            "execution quality from evidence confidence."
         ),
         price=8,
-        tags=["transaction", "risk", "evidence"],
+        tags=["a2a", "task", "risk", "evidence"],
         evidence=["machine-readable flags", "score breakdown", "sample-size disclosure"],
         reputation=0.78,
     ),
@@ -64,7 +66,7 @@ class SellerService:
         )
         return self.pricing.quote(request, first_purchase=first_purchase)
 
-    def settle(
+    def accept_order(
         self,
         *,
         buyer_id: str,
@@ -80,8 +82,12 @@ class SellerService:
             seller_id=SELLER_ID,
             service_id=service_id,
             amount=amount,
-            status=OrderStatus.PAID,
-            metadata={"input": input_payload},
+            status=OrderStatus.ACCEPTED,
+            metadata={
+                "input": input_payload,
+                "declared_amount": amount,
+                "credit_settlement": "not_evaluated",
+            },
         )
         return self.ledger.record(receipt, idempotency_key=idempotency_key)
 
@@ -90,13 +96,25 @@ class SellerService:
         if not receipt:
             raise KeyError(f"Unknown trade: {trade_id}")
         payload = receipt.metadata.get("input", {})
-        events = TypeAdapter(list[TransactionEvent]).validate_python(payload.get("events", []))
-        report = evaluate_transaction_trace(events)
+        submissions = TypeAdapter(list[InteractionEventSubmission]).validate_python(
+            payload.get("events", [])
+        )
+        # A caller cannot promote its own claim to platform-verified evidence.
+        events = [
+            InteractionEvent(
+                **submission.model_dump(),
+                provenance=EvidenceProvenance.SELF_REPORTED,
+            )
+            for submission in submissions
+        ]
+        report = evaluate_interaction_trace(events)
         output = report.model_dump(mode="json")
-        if receipt.service_id == "transaction-risk-report":
+        if receipt.service_id == "a2a-interaction-risk-report":
             output["interpretation"] = {
-                "meaning": "This score describes the supplied transaction trace only.",
-                "not_meaning": "It is not a subjective review or a global reputation score.",
+                "meaning": "This score describes the supplied A2A task trace only.",
+                "not_meaning": (
+                    "It does not verify credit settlement or establish global reputation."
+                ),
             }
         self.ledger.update_status(trade_id, OrderStatus.DELIVERED)
         return {"trade_id": trade_id, "status": "delivered", "output": output}

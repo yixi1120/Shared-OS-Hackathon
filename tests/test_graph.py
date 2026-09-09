@@ -1,6 +1,25 @@
+import pytest
+from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+
 from sharedos_commerce_agent.graph import build_arena_graph
 from sharedos_commerce_agent.harness import ArenaScenario, MockArenaClient
 from sharedos_commerce_agent.models import ArenaRunMode
+
+
+class SimulatedProcessCrash(BaseException):
+    pass
+
+
+class CrashAfterSecondPaymentClient(MockArenaClient):
+    crashed = False
+
+    async def buy(self, listing, *, idempotency_key):
+        receipt = await super().buy(listing, idempotency_key=idempotency_key)
+        if len(self.purchases) == 2 and not self.crashed:
+            self.crashed = True
+            raise SimulatedProcessCrash("process stopped after payment")
+        return receipt
 
 
 async def test_graph_exposes_business_nodes_in_execution_order() -> None:
@@ -85,3 +104,57 @@ async def test_market_round_skips_critique_actions() -> None:
     assert state["progress"].critiques == []
     assert state["progress"].spent_credits >= 80
     assert state["compliant"] is True
+
+
+async def test_checkpoint_resume_reuses_purchase_idempotency_keys() -> None:
+    client = CrashAfterSecondPaymentClient()
+    graph = build_arena_graph(client, checkpointer=InMemorySaver())
+    run_id = "arena-market-recovery-001"
+    config = {"configurable": {"thread_id": run_id}}
+
+    with pytest.raises(SimulatedProcessCrash):
+        await graph.ainvoke(
+            {
+                "agent_id": "agent-commerce-network",
+                "run_id": run_id,
+                "run_mode": ArenaRunMode.MARKET,
+            },
+            config=config,
+        )
+
+    recovered = await graph.ainvoke(None, config=config)
+
+    assert recovered["compliant"] is True
+    assert recovered["progress"].spent_credits == 95
+    assert len(recovered["progress"].receipts) == 4
+    assert len(client.purchases) == 4
+    assert len(client.purchases_by_key) == 4
+
+
+async def test_sqlite_checkpoint_survives_graph_recreation(tmp_path) -> None:
+    client = CrashAfterSecondPaymentClient()
+    checkpoint_path = str(tmp_path / "arena-checkpoints.sqlite3")
+    run_id = "arena-market-persistent-001"
+    config = {"configurable": {"thread_id": run_id}}
+
+    async with AsyncSqliteSaver.from_conn_string(checkpoint_path) as saver:
+        first_graph = build_arena_graph(client, checkpointer=saver)
+        with pytest.raises(SimulatedProcessCrash):
+            await first_graph.ainvoke(
+                {
+                    "agent_id": "agent-commerce-network",
+                    "run_id": run_id,
+                    "run_mode": ArenaRunMode.MARKET,
+                },
+                config=config,
+            )
+
+    # A new saver and graph simulate a new process reading the same checkpoint file.
+    async with AsyncSqliteSaver.from_conn_string(checkpoint_path) as saver:
+        restarted_graph = build_arena_graph(client, checkpointer=saver)
+        recovered = await restarted_graph.ainvoke(None, config=config)
+
+    assert recovered["compliant"] is True
+    assert recovered["progress"].spent_credits == 95
+    assert len(client.purchases) == 4
+    assert len(client.purchases_by_key) == 4

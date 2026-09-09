@@ -98,7 +98,20 @@ LLM 可以负责：
 - 已完成购买不会重复付款；
 - 不同 Arena run 的状态不会串线。
 
-完成标志：有一个自动化测试模拟中断和恢复。
+当前实现已经验证两层恢复：
+
+1. `InMemorySaver`：适合单元测试和同一进程内恢复。
+2. `AsyncSqliteSaver`：关闭 saver、重新创建 Graph 后，仍能从相同 `thread_id` 恢复。
+
+购买使用稳定幂等键：
+
+```text
+{run_id}:purchase:{service_id}:{plan_index}
+```
+
+Checkpoint 只保存节点边界的内部状态。若付款已经成功、但 `purchase` 节点尚未返回就崩溃，恢复时这个节点会重跑。稳定幂等键让支付端返回原 receipt，而不是再次扣款。
+
+完成标志：`test_sqlite_checkpoint_survives_graph_recreation` 模拟第二笔付款后崩溃，重新创建 saver 和 Graph 后，最终仍只有四笔真实扣款。
 
 ### 第 5 课：Harness Engineering 基础
 
@@ -336,17 +349,17 @@ report
 
 当前 Arena Graph 是我方 Agent 对外完成比赛规则的 **Outbound Compliance Graph**，不是我们出售的评价产品。`publish_required_feedback` 只负责将已经记录的调用事实转换成赛制要求的 disagreement。
 
-我方产品处理的是另一条 **Inbound Transaction Evidence Flow**：
+我方产品处理的是另一条 **Inbound A2A Interaction Evidence Flow**：
 
 ```text
-其他 Agent 经我方节点提交交易事件
-→ 校验 transaction_id、subject 和阶段顺序
-→ 检查付款、交付、价格、延迟、schema 与争议
-→ 输出 TransactionTraceReport
-→ 多笔有效 trace 才能聚合 ReputationSnapshot
+其他 Agent 经我方节点执行 A2A Task
+→ 校验 task_id、subject、provenance 和阶段顺序
+→ 检查 artifact 交付、延迟、schema 与争议
+→ 输出 InteractionTraceReport
+→ 多笔信誉合格的 trace 才能聚合 ReputationSnapshot
 ```
 
-主观 critique、宣传文案和 LLM 语气都不得进入 `reliability_score`。一笔 trace 只能标记为 `single-transaction`，不能伪装成高置信度的全局信誉。
+主观 critique、宣传文案和 LLM 语气都不得进入 `execution_score`。一笔 trace 只能表达单次交互；单方自报数据必须是低证据权重且不得进入信誉聚合。Arena 未提供可信 receipt 前，`credit_settlement` 固定为 `not_evaluated`。
 
 ## 当前实现进度
 
@@ -354,13 +367,19 @@ report
 - [x] 条件路由
 - [x] Critique / Market / Full 三种运行模式
 - [x] State 可携带上一轮 `progress`
-- [x] 9 个确定性 Harness 场景
+- [x] 12 个确定性 Harness 场景
 - [x] 错误价格检测
 - [x] API 超时检测
 - [x] 重复 receipt 检测
-- [x] 客观交易 trace 模型与确定性评分
+- [x] 客观 A2A interaction trace 模型与确定性评分
+- [x] provenance 分层与信誉准入门槛
+- [x] 单方自报不能升级成 verified evidence
 - [x] 执行探测与赛制 feedback 分离
-- [ ] Checkpoint 和中断恢复
+- [x] InMemory checkpoint 与同进程恢复
+- [x] SQLite checkpoint 与跨 Graph 重建恢复
+- [x] 购买副作用幂等键
+- [x] Critique / ranking 副作用幂等键
+- [x] 成功但 acknowledgement 丢失的三类故障场景
 - [ ] Seller 并发 Harness
 - [ ] 两小时 Soak Harness
 - [ ] Persona 与多随机种子实验

@@ -58,21 +58,34 @@ class HttpArenaClient:
         response.raise_for_status()
         return ServiceResult.model_validate(response.json())
 
-    async def post_critique(self, critique_text: str, product_id: str) -> None:
+    async def post_critique(
+        self, critique_text: str, product_id: str, *, idempotency_key: str
+    ) -> None:
         response = await self.client.post(
             self.routes.critique,
-            json={"product_id": product_id, "critique": critique_text},
+            json={
+                "product_id": product_id,
+                "critique": critique_text,
+                "idempotency_key": idempotency_key,
+            },
         )
         response.raise_for_status()
 
-    async def submit_ranking(self, rankings: list[RankingEntry]) -> None:
+    async def submit_ranking(
+        self, rankings: list[RankingEntry], *, idempotency_key: str
+    ) -> None:
         response = await self.client.post(
             self.routes.ranking,
-            json={"rankings": [item.model_dump(mode="json") for item in rankings]},
+            json={
+                "rankings": [item.model_dump(mode="json") for item in rankings],
+                "idempotency_key": idempotency_key,
+            },
         )
         response.raise_for_status()
 
-    async def buy(self, listing: ServiceListing) -> TradeReceipt:
+    async def buy(
+        self, listing: ServiceListing, *, idempotency_key: str
+    ) -> TradeReceipt:
         path = self.routes.buy.format(service_id=listing.service_id)
         response = await self.client.post(
             path,
@@ -80,6 +93,7 @@ class HttpArenaClient:
                 "service_id": listing.service_id,
                 "seller_id": listing.seller_id,
                 "amount": listing.price,
+                "idempotency_key": idempotency_key,
             },
         )
         response.raise_for_status()

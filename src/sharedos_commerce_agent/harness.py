@@ -66,10 +66,13 @@ class ArenaScenario:
     failed_invocations: set[str] = field(default_factory=set)
     failed_settlements: set[str] = field(default_factory=set)
     buy_timeouts: set[str] = field(default_factory=set)
+    buy_ack_timeouts_after_success: set[str] = field(default_factory=set)
     unexpected_amounts: dict[str, int] = field(default_factory=dict)
     duplicate_receipt_id: str | None = None
     critique_post_failures: set[str] = field(default_factory=set)
+    critique_ack_timeouts_after_success: set[str] = field(default_factory=set)
     ranking_submission_fails: bool = False
+    ranking_ack_timeout_after_success: bool = False
     expected_valid: bool = True
     expected_violation_fragments: tuple[str, ...] = ()
 
@@ -82,6 +85,10 @@ class MockArenaClient:
     posted_critiques: list[dict[str, str]] = field(default_factory=list)
     submitted_rankings: list[RankingEntry] = field(default_factory=list)
     purchases: list[TradeReceipt] = field(default_factory=list)
+    purchases_by_key: dict[str, TradeReceipt] = field(default_factory=dict)
+    posted_critique_keys: set[str] = field(default_factory=set)
+    ranking_keys: set[str] = field(default_factory=set)
+    acknowledgement_timeouts: set[str] = field(default_factory=set)
 
     async def discover_services(self) -> list[ServiceListing]:
         return self.scenario.listings.copy()
@@ -107,19 +114,45 @@ class MockArenaClient:
             },
         )
 
-    async def post_critique(self, critique_text: str, product_id: str) -> None:
+    async def post_critique(
+        self, critique_text: str, product_id: str, *, idempotency_key: str
+    ) -> None:
+        if idempotency_key in self.posted_critique_keys:
+            return
         if product_id in self.scenario.critique_post_failures:
             raise ConnectionError("synthetic critique endpoint failure")
         self.posted_critiques.append(
             {"product_id": product_id, "critique": critique_text}
         )
+        self.posted_critique_keys.add(idempotency_key)
+        if (
+            product_id in self.scenario.critique_ack_timeouts_after_success
+            and idempotency_key not in self.acknowledgement_timeouts
+        ):
+            self.acknowledgement_timeouts.add(idempotency_key)
+            raise TimeoutError("synthetic acknowledgement loss after critique")
 
-    async def submit_ranking(self, rankings: list[RankingEntry]) -> None:
+    async def submit_ranking(
+        self, rankings: list[RankingEntry], *, idempotency_key: str
+    ) -> None:
+        if idempotency_key in self.ranking_keys:
+            return
         if self.scenario.ranking_submission_fails:
             raise ConnectionError("synthetic ranking endpoint failure")
         self.submitted_rankings = rankings
+        self.ranking_keys.add(idempotency_key)
+        if (
+            self.scenario.ranking_ack_timeout_after_success
+            and idempotency_key not in self.acknowledgement_timeouts
+        ):
+            self.acknowledgement_timeouts.add(idempotency_key)
+            raise TimeoutError("synthetic acknowledgement loss after ranking")
 
-    async def buy(self, listing: ServiceListing) -> TradeReceipt:
+    async def buy(
+        self, listing: ServiceListing, *, idempotency_key: str
+    ) -> TradeReceipt:
+        if idempotency_key in self.purchases_by_key:
+            return self.purchases_by_key[idempotency_key]
         if listing.service_id in self.scenario.buy_timeouts:
             raise TimeoutError("synthetic purchase timeout")
         status = (
@@ -141,6 +174,13 @@ class MockArenaClient:
             receipt_data["trade_id"] = self.scenario.duplicate_receipt_id
         receipt = TradeReceipt.model_validate(receipt_data)
         self.purchases.append(receipt)
+        self.purchases_by_key[idempotency_key] = receipt
+        if (
+            listing.service_id in self.scenario.buy_ack_timeouts_after_success
+            and idempotency_key not in self.acknowledgement_timeouts
+        ):
+            self.acknowledgement_timeouts.add(idempotency_key)
+            raise TimeoutError("synthetic acknowledgement loss after purchase")
         return receipt
 
 
@@ -158,10 +198,20 @@ SCENARIOS = [
         expected_violation_fragments=("Could not post critique",),
     ),
     ArenaScenario(
+        name="critique_succeeds_but_ack_is_lost",
+        critique_ack_timeouts_after_success={"seller-c"},
+        expected_valid=True,
+    ),
+    ArenaScenario(
         name="ranking_submission_fails",
         ranking_submission_fails=True,
         expected_valid=False,
         expected_violation_fragments=("Could not submit ranking",),
+    ),
+    ArenaScenario(
+        name="ranking_succeeds_but_ack_is_lost",
+        ranking_ack_timeout_after_success=True,
+        expected_valid=True,
     ),
     ArenaScenario(
         name="purchase_does_not_settle",
@@ -186,6 +236,11 @@ SCENARIOS = [
         buy_timeouts={"demand-forecast"},
         expected_valid=False,
         expected_violation_fragments=("TimeoutError",),
+    ),
+    ArenaScenario(
+        name="purchase_succeeds_but_ack_is_lost",
+        buy_ack_timeouts_after_success={"demand-forecast"},
+        expected_valid=True,
     ),
     ArenaScenario(
         name="duplicate_receipts",

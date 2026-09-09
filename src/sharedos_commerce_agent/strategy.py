@@ -41,8 +41,8 @@ class PricingPolicy:
             ask_price=ask,
             reservation_price=floor,
             pitch=(
-                f"For {ask} credits, we validate a structured transaction trace and "
-                "return deterministic reliability evidence and risk flags."
+                f"For {ask} credits, we evaluate a structured A2A task trace and return "
+                "execution evidence, provenance confidence, and risk flags."
             ),
             expires_at=utc_now() + timedelta(minutes=10),
         )
