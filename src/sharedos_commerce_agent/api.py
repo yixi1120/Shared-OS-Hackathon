@@ -2,15 +2,23 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Any
+from importlib.resources import files
 
 import uvicorn
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, Field
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, Field, ValidationError
 
 from .config import Settings
 from .ledger import Ledger
 from .models import NegotiationDecision, Quote, QuoteRequest, TradeReceipt
 from .seller import SellerService
+from .sales import answer, catalog_for_agents, introduction, templates
+
+
+class SalesQuestion(BaseModel):
+    topic: str = Field(default="why_node", max_length=80)
+    goal: str | None = Field(default=None, max_length=80)
 
 
 class NegotiationRequest(BaseModel):
@@ -44,7 +52,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @app.get("/v1/catalog")
     def catalog() -> list[dict[str, Any]]:
-        return [item.model_dump(mode="json") for item in seller.catalog()]
+        return catalog_for_agents(seller)
+
+    @app.get("/v1/sales")
+    def sales_description() -> dict[str, Any]:
+        return {"intro": introduction(), "faq": templates()["faq"],
+                "offers": templates()["offers"], "side_effects": False}
+
+    @app.post("/v1/sales/respond")
+    def sales_response(request: SalesQuestion) -> dict[str, Any]:
+        return answer(request.topic, request.goal)
+
+    app.mount("/dashboard", StaticFiles(
+        directory=str(files("sharedos_commerce_agent").joinpath("dashboard")), html=True
+    ), name="dashboard")
 
     @app.post("/v1/quotes", response_model=Quote)
     def create_quote(request: QuoteRequest) -> Quote:
@@ -83,13 +104,18 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 status_code=409,
                 detail=f"Expected payment of {expected_price} credits",
             )
-        return seller.settle(
-            buyer_id=request.buyer_id,
-            service_id=request.service_id,
-            amount=request.amount,
-            idempotency_key=request.idempotency_key,
-            input_payload=request.input,
-        )
+        try:
+            return seller.settle(
+                buyer_id=request.buyer_id,
+                service_id=request.service_id,
+                amount=request.amount,
+                idempotency_key=request.idempotency_key,
+                input_payload=request.input,
+            )
+        except ValidationError as exc:
+            # Never echo rejected raw input (which can contain private content).
+            errors = [{"loc": list(e["loc"]), "type": e["type"]} for e in exc.errors()]
+            raise HTTPException(status_code=422, detail=errors) from exc
 
     @app.post("/v1/orders/{trade_id}/deliver")
     def deliver(trade_id: str) -> dict[str, Any]:

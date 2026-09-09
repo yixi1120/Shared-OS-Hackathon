@@ -18,6 +18,7 @@ from .models import (
     ServiceResult,
 )
 from .strategy import ComplianceError, CritiqueStrategy, MarketStrategy
+from .sales import introduction
 
 
 class ArenaGraphState(TypedDict, total=False):
@@ -35,6 +36,7 @@ class ArenaGraphState(TypedDict, total=False):
     violations: Annotated[list[str], operator.add]
     report: ArenaReport
     compliant: bool
+    sales_intro: str
 
 
 def build_arena_graph(
@@ -58,6 +60,7 @@ def build_arena_graph(
             raise ValueError("progress belongs to a different agent_id")
         return {
             "phase": "discover",
+            "sales_intro": introduction(),
             "run_mode": run_mode,
             "progress": progress.model_copy(deep=True),
             "rankings": [],

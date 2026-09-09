@@ -15,6 +15,7 @@ from .models import (
 )
 from .strategy import PricingPolicy
 from .telemetry import evaluate_transaction_trace
+from .sales import TransactionInput
 
 
 SELLER_ID = "agent-commerce-network"
@@ -62,7 +63,13 @@ class SellerService:
         first_purchase = not any(
             receipt.buyer_id == request.buyer_id for receipt in self.ledger.list()
         )
-        return self.pricing.quote(request, first_purchase=first_purchase)
+        quote = self.pricing.quote(request, first_purchase=first_purchase)
+        quote.pitch = (
+            f"For {quote.ask_price} credits, inspect one supplied transaction's "
+            "structured lifecycle evidence. Source claims are not authenticated by "
+            "the local runtime; this is not global reputation. Paying cannot improve the score."
+        )
+        return quote
 
     def settle(
         self,
@@ -75,13 +82,16 @@ class SellerService:
     ) -> TradeReceipt:
         if service_id not in {item.service_id for item in CATALOG}:
             raise KeyError(f"Unknown service: {service_id}")
+        # Validate before retaining input or creating a paid local ledger entry.
+        # This preflight does not authenticate the caller or its evidence.
+        validated = TransactionInput.model_validate(input_payload)
         receipt = TradeReceipt(
             buyer_id=buyer_id,
             seller_id=SELLER_ID,
             service_id=service_id,
             amount=amount,
             status=OrderStatus.PAID,
-            metadata={"input": input_payload},
+            metadata={"input": validated.model_dump(mode="json")},
         )
         return self.ledger.record(receipt, idempotency_key=idempotency_key)
 
@@ -99,4 +109,12 @@ class SellerService:
                 "not_meaning": "It is not a subjective review or a global reputation score.",
             }
         self.ledger.update_status(trade_id, OrderStatus.DELIVERED)
-        return {"trade_id": trade_id, "status": "delivered", "output": output}
+        return {
+            "trade_id": trade_id, "status": "delivered", "output": output,
+            "evidence_provenance": [
+                {"evidence_id": event.get("evidence_id"),
+                 "claimed": event.get("provenance", "self_reported"),
+                 "verified": False}
+                for event in payload.get("events", [])
+            ],
+        }

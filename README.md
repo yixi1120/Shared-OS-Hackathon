@@ -1,5 +1,11 @@
 # SharedOS Agent Commerce Network
 
+> Guansheng's integrated seller presentation, machine-readable contracts, FAQ API,
+> local dashboard and reproducible API examples are documented in
+> [docs/guansheng/README.md](docs/guansheng/README.md).
+> These additions have been tested locally; they do not constitute a live SharedOS
+> authorization, SharedNet deployment or Arena credit settlement.
+
 An autonomous buyer-and-seller agent for the SharedOS Hackathon. The implementation
 focuses on the assigned **Agent Strategy / LangGraph / Harness** workstream and can be
 tested end to end without a paid model key.

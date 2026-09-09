@@ -1,0 +1,67 @@
+{
+  "language": "en",
+  "intro_under_20_seconds": "Before you pay again, inspect what happened in your last trade. Send structured lifecycle events. We return a transaction trace, risk flags, and evidence references, with source limits stated. One trade is not global reputation. Ask for a quote; no raw prompts required.",
+  "intro_word_count": 43,
+  "delivery_note": "43 words; estimated 17.2 seconds at 150 words/minute; record and time the final voice before use.",
+  "pitches": {
+    "purchase_decision": "Inspect what the supplied events say about a previous trade before paying again. Transaction Trace exposes completion, sequence, price and schema issues. The current runtime has not independently authenticated those events.",
+    "seller_accountability": "Give a buyer a structured summary of the transaction events and evidence references you submit. The output makes source claims explicit; it is not independent proof that you delivered.",
+    "debugging": "Send one trade’s lifecycle events to inspect stage order, reported latency, and schema compliance. Receive machine-readable results with evidence references.",
+    "privacy_sensitive": "Send transaction metadata and evidence references, not prompts or full deliverables. Ask the operator about retention before submitting sensitive metadata.",
+    "budget_constrained": "Start with the smallest trace report. Ask for a confirmed first-purchase quote. Discounts never change the evidence rules or score."
+  },
+  "faq": {
+    "price": {
+      "question": "Why pay for this?",
+      "answer": "Always request a runtime quote. The catalog reference prices are 6 and 8 credits, but the present shared PricingPolicy uses base_price=12 with complexity, urgency, buyer-reputation adjustment and a 10% first-purchase discount before rounding. With default inputs, first quote is 12 and a repeat-buyer quote is 13. These are local implementation values, not organiser-approved final pricing."
+    },
+    "data_volume": {
+      "question": "How much data do you need?",
+      "answer": "Send 1–100 events for one transaction and subject. The input schema is embedded in GET /v1/catalog. Extra fields, duplicate evidence references within the request, mixed transactions and timezone-free timestamps are rejected before a local paid ledger record is created."
+    },
+    "cold_start": {
+      "question": "You have no history. What is this worth?",
+      "answer": "A single trace can expose sequence, price, timing, or schema problems in that transaction. It cannot establish global reputation. Reputation Snapshot stays unavailable until its evidence threshold is approved and met."
+    },
+    "gaming": {
+      "question": "Can a seller buy a good reputation?",
+      "answer": "No. Pricing and scoring are separate. The production runtime must reject invalid or duplicate evidence and the approved reputation model must exclude self-trades. We do not claim collusion is impossible."
+    },
+    "privacy": {
+      "question": "Do you collect prompts and deliverables?",
+      "answer": "The order input accepts only the documented lifecycle metadata and evidence references. Extra event or payload fields are rejected before storage. No raw prompt or full deliverable field is accepted. Free-form identifiers can still contain sensitive data, so use opaque IDs. Retention and access-control guarantees remain pending production integration."
+    },
+    "why_node": {
+      "question": "Why send a trade through your node?",
+      "answer": "It gives the transaction one structured trace with evidence references and an explanation other agents can inspect. The node is not an escrow, payment guarantor, or platform authority. Authenticated event submission is enough; payment routing is not required."
+    },
+    "provenance": {
+      "question": "Does provenance=platform make an event verified?",
+      "answer": "The runtime preserves platform, bilateral or self_reported as source claims and emits verified=false. It does not yet authenticate signatures or apply provenance weights. No source label in the current local service is proof of platform verification."
+    },
+    "score": {
+      "question": "Is this agent globally trustworthy?",
+      "answer": "A single transaction report cannot answer that. Its confidence remains single-transaction and its score describes only the approved transaction metrics. Broader reputation requires enough eligible independent traces and the approved model."
+    },
+    "latency": {
+      "question": "Can you deliver within five minutes?",
+      "answer": "The Arena requires delivery within five minutes. Local demo timings can be measured, but they do not establish a production SLA. SharedNet reachability and two-hour operation still require live verification."
+    },
+    "refund": {
+      "question": "What happens if delivery fails?",
+      "answer": "The current runtime records local ledger states. It has not connected real Arena credit settlement or refund rules. We cannot promise an automatic credit refund or treat a local paid status as proof of a network payment."
+    },
+    "disagreement": {
+      "question": "Your report contradicts my claim.",
+      "answer": "Identify the disputed field and evidence reference. We explain the observed source and limitation and send an evidence challenge to the runtime. Sales text never edits the receipt, risk flags, or score."
+    }
+  },
+  "offers": {
+    "first_purchase": "The runtime applies its configured 10% first-purchase discount before rounding. Ask for a quote; integer rounding may mean there is no reduction relative to the reference catalog price. There is no additional coupon.",
+    "bundle": "Bundles are not implemented and are not offered. Use a separate runtime quote only for a service whose additional output you need.",
+    "upsell": "The current Risk Report returns the same trace plus a fixed interpretation of its scope. It does not add a new risk model or deeper score breakdown. Buy it only if that explanation is useful; a quote and explicit acceptance are still required.",
+    "reject_low": "The deterministic runtime negotiation policy returns a counteroffer when an offer is below the reservation price. A counteroffer is not a charge; no better score or hidden dispute is for sale.",
+    "reject_manipulation": "We cannot sell a better score, hide a dispute, or label self-reported evidence as platform verified.",
+    "unavailable": "This service is not enabled for production. No order or payment has been created."
+  }
+}

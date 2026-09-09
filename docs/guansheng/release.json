@@ -1,0 +1,20 @@
+{
+  "repository_url": "https://github.com/yixi1120/Shared-OS-Hackathon",
+  "reviewed_commit": "ebac64cb6182607f029c00bc17d07a114a041f48",
+  "repository_has_deliverable_code": true,
+  "team_lead_discord": null,
+  "sharednet_node_id": null,
+  "sharedos_purpose": null,
+  "product_agent_addresses": [],
+  "sharednet_service_address": null,
+  "confirmed_deadline": null,
+  "confirmed_arena_start": null,
+  "confirmed_arena_end": null,
+  "pricing_reconciled": false,
+  "runtime_authorization_verified": false,
+  "external_call_receipt": null,
+  "cloud_audit_reference": null,
+  "two_hour_soak_report": null,
+  "submission_receipt": null,
+  "delivery_branch": "Guansheng"
+}

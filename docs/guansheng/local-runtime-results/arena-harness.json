@@ -1,0 +1,965 @@
+{
+  "scenarios": [
+    {
+      "expectation_met": true,
+      "phase": "complete",
+      "report": {
+        "progress": {
+          "agent_id": "agent-commerce-network",
+          "critiques": [
+            {
+              "disagreement": "I disagree that the current listing fully supports its promise because the delivered result states this limitation: The result uses synthetic marketplace metadata..",
+              "evidence": "The service returned receipt 0845269f-e17c-4ec6-94a1-81f4b9afe574 in 155 ms with fields ['confidence', 'limitation', 'recommendation'].",
+              "product_id": "seller-c",
+              "seller_id": "seller-c",
+              "suggestion": "Publish a three-run success rate and a machine-verifiable output schema.",
+              "tested_service_id": "demand-forecast"
+            },
+            {
+              "disagreement": "I disagree that the current listing fully supports its promise because the delivered result states this limitation: The result uses synthetic marketplace metadata..",
+              "evidence": "The service returned receipt 112798bc-7986-470e-94ff-7b15a56b8e38 in 140 ms with fields ['confidence', 'limitation', 'recommendation'].",
+              "product_id": "seller-a",
+              "seller_id": "seller-a",
+              "suggestion": "Publish a three-run success rate and a machine-verifiable output schema.",
+              "tested_service_id": "audience-map"
+            },
+            {
+              "disagreement": "I disagree that the current listing fully supports its promise because the delivered result states this limitation: The result uses synthetic marketplace metadata..",
+              "evidence": "The service returned receipt d2db1537-6754-489d-ac08-e7fe4fb8e9c9 in 145 ms with fields ['confidence', 'limitation', 'recommendation'].",
+              "product_id": "seller-b",
+              "seller_id": "seller-b",
+              "suggestion": "Publish a three-run success rate and a machine-verifiable output schema.",
+              "tested_service_id": "risk-scan"
+            }
+          ],
+          "purchased_products": [
+            "seller-d",
+            "seller-c",
+            "seller-a",
+            "seller-b"
+          ],
+          "ranking_submitted": true,
+          "receipts": [
+            {
+              "amount": 15,
+              "buyer_id": "agent-commerce-network",
+              "created_at": "2026-09-09T16:56:04.264311Z",
+              "metadata": {
+                "source": "mock-arena"
+              },
+              "seller_id": "seller-d",
+              "service_id": "pitch-review",
+              "status": "paid",
+              "trade_id": "b14b2ce3-1bfa-445c-87bb-31a3e87e02bd"
+            },
+            {
+              "amount": 20,
+              "buyer_id": "agent-commerce-network",
+              "created_at": "2026-09-09T16:56:04.264311Z",
+              "metadata": {
+                "source": "mock-arena"
+              },
+              "seller_id": "seller-a",
+              "service_id": "audience-map",
+              "status": "paid",
+              "trade_id": "120e464c-e551-4918-874b-236df922569b"
+            },
+            {
+              "amount": 25,
+              "buyer_id": "agent-commerce-network",
+              "created_at": "2026-09-09T16:56:04.264311Z",
+              "metadata": {
+                "source": "mock-arena"
+              },
+              "seller_id": "seller-b",
+              "service_id": "risk-scan",
+              "status": "paid",
+              "trade_id": "a156de9b-973b-48fa-ab4c-a638af4fba13"
+            },
+            {
+              "amount": 35,
+              "buyer_id": "agent-commerce-network",
+              "created_at": "2026-09-09T16:56:04.264311Z",
+              "metadata": {
+                "source": "mock-arena"
+              },
+              "seller_id": "seller-c",
+              "service_id": "demand-forecast",
+              "status": "paid",
+              "trade_id": "b13d4c15-ffe2-4361-8585-c23f3684272b"
+            }
+          ],
+          "round": "complete",
+          "spent_credits": 95,
+          "tried_products": [
+            "seller-c",
+            "seller-a",
+            "seller-b"
+          ]
+        },
+        "rankings": [
+          {
+            "product_id": "seller-a",
+            "rationale": "success=True, latency=140ms, price=20, evidence_items=2",
+            "score": 79.44
+          },
+          {
+            "product_id": "seller-b",
+            "rationale": "success=True, latency=145ms, price=25, evidence_items=1",
+            "score": 71.92
+          },
+          {
+            "product_id": "seller-c",
+            "rationale": "success=True, latency=155ms, price=35, evidence_items=2",
+            "score": 71.88
+          }
+        ],
+        "violations": []
+      },
+      "scenario": "happy_path",
+      "side_effects": {
+        "critiques_posted": 3,
+        "purchases": 4,
+        "ranking_entries": 3
+      },
+      "valid": true
+    },
+    {
+      "expectation_met": true,
+      "phase": "complete",
+      "report": {
+        "progress": {
+          "agent_id": "agent-commerce-network",
+          "critiques": [
+            {
+              "disagreement": "I disagree with the listing's availability claim because the tested service invocation did not complete successfully.",
+              "evidence": "The invocation failed after 2000 ms and returned fields ['error'].",
+              "product_id": "seller-c",
+              "seller_id": "seller-c",
+              "suggestion": "Add a health check, bounded retry, and idempotent recovery path.",
+              "tested_service_id": "demand-forecast"
+            },
+            {
+              "disagreement": "I disagree that the current listing fully supports its promise because the delivered result states this limitation: The result uses synthetic marketplace metadata..",
+              "evidence": "The service returned receipt 3f7fcb15-ef5d-4500-abaa-711df9973576 in 140 ms with fields ['confidence', 'limitation', 'recommendation'].",
+              "product_id": "seller-a",
+              "seller_id": "seller-a",
+              "suggestion": "Publish a three-run success rate and a machine-verifiable output schema.",
+              "tested_service_id": "audience-map"
+            },
+            {
+              "disagreement": "I disagree that the current listing fully supports its promise because the delivered result states this limitation: The result uses synthetic marketplace metadata..",
+              "evidence": "The service returned receipt 16240824-6f7b-450d-a475-58133eaf5820 in 145 ms with fields ['confidence', 'limitation', 'recommendation'].",
+              "product_id": "seller-b",
+              "seller_id": "seller-b",
+              "suggestion": "Publish a three-run success rate and a machine-verifiable output schema.",
+              "tested_service_id": "risk-scan"
+            }
+          ],
+          "purchased_products": [
+            "seller-d",
+            "seller-c",
+            "seller-a",
+            "seller-b"
+          ],
+          "ranking_submitted": true,
+          "receipts": [
+            {
+              "amount": 15,
+              "buyer_id": "agent-commerce-network",
+              "created_at": "2026-09-09T16:56:04.278914Z",
+              "metadata": {
+                "source": "mock-arena"
+              },
+              "seller_id": "seller-d",
+              "service_id": "pitch-review",
+              "status": "paid",
+              "trade_id": "2a7f539c-a6c8-496f-a55e-3dbbf0d52441"
+            },
+            {
+              "amount": 20,
+              "buyer_id": "agent-commerce-network",
+              "created_at": "2026-09-09T16:56:04.278914Z",
+              "metadata": {
+                "source": "mock-arena"
+              },
+              "seller_id": "seller-a",
+              "service_id": "audience-map",
+              "status": "paid",
+              "trade_id": "71fddc9a-c319-4e2e-a332-2ce5fdbf205d"
+            },
+            {
+              "amount": 25,
+              "buyer_id": "agent-commerce-network",
+              "created_at": "2026-09-09T16:56:04.278914Z",
+              "metadata": {
+                "source": "mock-arena"
+              },
+              "seller_id": "seller-b",
+              "service_id": "risk-scan",
+              "status": "paid",
+              "trade_id": "b2140e10-6ad3-4d9c-991a-3d9ecf3580e9"
+            },
+            {
+              "amount": 35,
+              "buyer_id": "agent-commerce-network",
+              "created_at": "2026-09-09T16:56:04.278914Z",
+              "metadata": {
+                "source": "mock-arena"
+              },
+              "seller_id": "seller-c",
+              "service_id": "demand-forecast",
+              "status": "paid",
+              "trade_id": "0ac2ca4d-6da4-4509-aa07-f600fbd73324"
+            }
+          ],
+          "round": "complete",
+          "spent_credits": 95,
+          "tried_products": [
+            "seller-c",
+            "seller-a",
+            "seller-b"
+          ]
+        },
+        "rankings": [
+          {
+            "product_id": "seller-a",
+            "rationale": "success=True, latency=140ms, price=20, evidence_items=2",
+            "score": 79.44
+          },
+          {
+            "product_id": "seller-b",
+            "rationale": "success=True, latency=145ms, price=25, evidence_items=1",
+            "score": 71.92
+          },
+          {
+            "product_id": "seller-c",
+            "rationale": "success=False, latency=2000ms, price=35, evidence_items=2",
+            "score": 29.5
+          }
+        ],
+        "violations": []
+      },
+      "scenario": "one_provider_fails_during_evaluation",
+      "side_effects": {
+        "critiques_posted": 3,
+        "purchases": 4,
+        "ranking_entries": 3
+      },
+      "valid": true
+    },
+    {
+      "expectation_met": true,
+      "phase": "complete",
+      "report": {
+        "progress": {
+          "agent_id": "agent-commerce-network",
+          "critiques": [
+            {
+              "disagreement": "I disagree that the current listing fully supports its promise because the delivered result states this limitation: The result uses synthetic marketplace metadata..",
+              "evidence": "The service returned receipt 5587b19e-fe20-4ec3-bba7-ea7c6868923a in 155 ms with fields ['confidence', 'limitation', 'recommendation'].",
+              "product_id": "seller-c",
+              "seller_id": "seller-c",
+              "suggestion": "Publish a three-run success rate and a machine-verifiable output schema.",
+              "tested_service_id": "demand-forecast"
+            },
+            {
+              "disagreement": "I disagree that the current listing fully supports its promise because the delivered result states this limitation: The result uses synthetic marketplace metadata..",
+              "evidence": "The service returned receipt a4ff52b2-bf6e-48a5-843b-a1cab3159e19 in 140 ms with fields ['confidence', 'limitation', 'recommendation'].",
+              "product_id": "seller-a",
+              "seller_id": "seller-a",
+              "suggestion": "Publish a three-run success rate and a machine-verifiable output schema.",
+              "tested_service_id": "audience-map"
+            },
+            {
+              "disagreement": "I disagree that the current listing fully supports its promise because the delivered result states this limitation: The result uses synthetic marketplace metadata..",
+              "evidence": "The service returned receipt 43cf4625-a78b-4444-805b-205b53982319 in 145 ms with fields ['confidence', 'limitation', 'recommendation'].",
+              "product_id": "seller-b",
+              "seller_id": "seller-b",
+              "suggestion": "Publish a three-run success rate and a machine-verifiable output schema.",
+              "tested_service_id": "risk-scan"
+            }
+          ],
+          "purchased_products": [
+            "seller-d",
+            "seller-c",
+            "seller-a",
+            "seller-b"
+          ],
+          "ranking_submitted": true,
+          "receipts": [
+            {
+              "amount": 15,
+              "buyer_id": "agent-commerce-network",
+              "created_at": "2026-09-09T16:56:04.294575Z",
+              "metadata": {
+                "source": "mock-arena"
+              },
+              "seller_id": "seller-d",
+              "service_id": "pitch-review",
+              "status": "paid",
+              "trade_id": "27ae6b43-d693-473d-a9b1-c696bd34e0fa"
+            },
+            {
+              "amount": 20,
+              "buyer_id": "agent-commerce-network",
+              "created_at": "2026-09-09T16:56:04.294575Z",
+              "metadata": {
+                "source": "mock-arena"
+              },
+              "seller_id": "seller-a",
+              "service_id": "audience-map",
+              "status": "paid",
+              "trade_id": "edd2ad9a-a01e-4dcb-8371-5b6248884df4"
+            },
+            {
+              "amount": 25,
+              "buyer_id": "agent-commerce-network",
+              "created_at": "2026-09-09T16:56:04.294575Z",
+              "metadata": {
+                "source": "mock-arena"
+              },
+              "seller_id": "seller-b",
+              "service_id": "risk-scan",
+              "status": "paid",
+              "trade_id": "55bcdb12-805f-4082-8812-1f37335a60a0"
+            },
+            {
+              "amount": 35,
+              "buyer_id": "agent-commerce-network",
+              "created_at": "2026-09-09T16:56:04.294575Z",
+              "metadata": {
+                "source": "mock-arena"
+              },
+              "seller_id": "seller-c",
+              "service_id": "demand-forecast",
+              "status": "paid",
+              "trade_id": "81b67cf3-c8ba-4537-91ee-6b5b1d18c887"
+            }
+          ],
+          "round": "market",
+          "spent_credits": 95,
+          "tried_products": [
+            "seller-c",
+            "seller-a",
+            "seller-b"
+          ]
+        },
+        "rankings": [
+          {
+            "product_id": "seller-a",
+            "rationale": "success=True, latency=140ms, price=20, evidence_items=2",
+            "score": 79.44
+          },
+          {
+            "product_id": "seller-b",
+            "rationale": "success=True, latency=145ms, price=25, evidence_items=1",
+            "score": 71.92
+          },
+          {
+            "product_id": "seller-c",
+            "rationale": "success=True, latency=155ms, price=35, evidence_items=2",
+            "score": 71.88
+          }
+        ],
+        "violations": [
+          "Could not post critique for seller-c: ConnectionError"
+        ]
+      },
+      "scenario": "critique_cannot_be_posted",
+      "side_effects": {
+        "critiques_posted": 2,
+        "purchases": 4,
+        "ranking_entries": 3
+      },
+      "valid": false
+    },
+    {
+      "expectation_met": true,
+      "phase": "complete",
+      "report": {
+        "progress": {
+          "agent_id": "agent-commerce-network",
+          "critiques": [
+            {
+              "disagreement": "I disagree that the current listing fully supports its promise because the delivered result states this limitation: The result uses synthetic marketplace metadata..",
+              "evidence": "The service returned receipt 18f61ac4-122a-418a-a964-0c8c6d638f50 in 155 ms with fields ['confidence', 'limitation', 'recommendation'].",
+              "product_id": "seller-c",
+              "seller_id": "seller-c",
+              "suggestion": "Publish a three-run success rate and a machine-verifiable output schema.",
+              "tested_service_id": "demand-forecast"
+            },
+            {
+              "disagreement": "I disagree that the current listing fully supports its promise because the delivered result states this limitation: The result uses synthetic marketplace metadata..",
+              "evidence": "The service returned receipt fdf77c08-70df-4a72-ad37-b7dea83ce97b in 140 ms with fields ['confidence', 'limitation', 'recommendation'].",
+              "product_id": "seller-a",
+              "seller_id": "seller-a",
+              "suggestion": "Publish a three-run success rate and a machine-verifiable output schema.",
+              "tested_service_id": "audience-map"
+            },
+            {
+              "disagreement": "I disagree that the current listing fully supports its promise because the delivered result states this limitation: The result uses synthetic marketplace metadata..",
+              "evidence": "The service returned receipt 5e2544c0-c770-414f-a1ef-6184e9e3ddc8 in 145 ms with fields ['confidence', 'limitation', 'recommendation'].",
+              "product_id": "seller-b",
+              "seller_id": "seller-b",
+              "suggestion": "Publish a three-run success rate and a machine-verifiable output schema.",
+              "tested_service_id": "risk-scan"
+            }
+          ],
+          "purchased_products": [
+            "seller-d",
+            "seller-c",
+            "seller-a",
+            "seller-b"
+          ],
+          "ranking_submitted": false,
+          "receipts": [
+            {
+              "amount": 15,
+              "buyer_id": "agent-commerce-network",
+              "created_at": "2026-09-09T16:56:04.297952Z",
+              "metadata": {
+                "source": "mock-arena"
+              },
+              "seller_id": "seller-d",
+              "service_id": "pitch-review",
+              "status": "paid",
+              "trade_id": "2421dcd4-7545-48ee-a93d-92d5e35e36cf"
+            },
+            {
+              "amount": 20,
+              "buyer_id": "agent-commerce-network",
+              "created_at": "2026-09-09T16:56:04.297952Z",
+              "metadata": {
+                "source": "mock-arena"
+              },
+              "seller_id": "seller-a",
+              "service_id": "audience-map",
+              "status": "paid",
+              "trade_id": "1b811fd3-35a4-4cf6-bda9-cabd4e49d53a"
+            },
+            {
+              "amount": 25,
+              "buyer_id": "agent-commerce-network",
+              "created_at": "2026-09-09T16:56:04.297952Z",
+              "metadata": {
+                "source": "mock-arena"
+              },
+              "seller_id": "seller-b",
+              "service_id": "risk-scan",
+              "status": "paid",
+              "trade_id": "18ff1cce-e81f-4d87-ae93-4a8b780c5d2b"
+            },
+            {
+              "amount": 35,
+              "buyer_id": "agent-commerce-network",
+              "created_at": "2026-09-09T16:56:04.297952Z",
+              "metadata": {
+                "source": "mock-arena"
+              },
+              "seller_id": "seller-c",
+              "service_id": "demand-forecast",
+              "status": "paid",
+              "trade_id": "62d4e6a6-a995-4b42-92f3-5e3936fad83a"
+            }
+          ],
+          "round": "market",
+          "spent_credits": 95,
+          "tried_products": [
+            "seller-c",
+            "seller-a",
+            "seller-b"
+          ]
+        },
+        "rankings": [
+          {
+            "product_id": "seller-a",
+            "rationale": "success=True, latency=140ms, price=20, evidence_items=2",
+            "score": 79.44
+          },
+          {
+            "product_id": "seller-b",
+            "rationale": "success=True, latency=145ms, price=25, evidence_items=1",
+            "score": 71.92
+          },
+          {
+            "product_id": "seller-c",
+            "rationale": "success=True, latency=155ms, price=35, evidence_items=2",
+            "score": 71.88
+          }
+        ],
+        "violations": [
+          "Could not submit ranking: ConnectionError",
+          "Critique round requires 3 tried products, a specific disagreement for each, and a ranking."
+        ]
+      },
+      "scenario": "ranking_submission_fails",
+      "side_effects": {
+        "critiques_posted": 3,
+        "purchases": 4,
+        "ranking_entries": 0
+      },
+      "valid": false
+    },
+    {
+      "expectation_met": true,
+      "phase": "complete",
+      "report": {
+        "progress": {
+          "agent_id": "agent-commerce-network",
+          "critiques": [
+            {
+              "disagreement": "I disagree that the current listing fully supports its promise because the delivered result states this limitation: The result uses synthetic marketplace metadata..",
+              "evidence": "The service returned receipt c059b7dd-f6ad-4a2e-a157-711ca1360c9a in 155 ms with fields ['confidence', 'limitation', 'recommendation'].",
+              "product_id": "seller-c",
+              "seller_id": "seller-c",
+              "suggestion": "Publish a three-run success rate and a machine-verifiable output schema.",
+              "tested_service_id": "demand-forecast"
+            },
+            {
+              "disagreement": "I disagree that the current listing fully supports its promise because the delivered result states this limitation: The result uses synthetic marketplace metadata..",
+              "evidence": "The service returned receipt eb4e1ae8-a027-4b00-8d7a-410bd7f60b67 in 140 ms with fields ['confidence', 'limitation', 'recommendation'].",
+              "product_id": "seller-a",
+              "seller_id": "seller-a",
+              "suggestion": "Publish a three-run success rate and a machine-verifiable output schema.",
+              "tested_service_id": "audience-map"
+            },
+            {
+              "disagreement": "I disagree that the current listing fully supports its promise because the delivered result states this limitation: The result uses synthetic marketplace metadata..",
+              "evidence": "The service returned receipt c8f5895b-91d1-49e7-b4e8-573c1ce3ff7e in 145 ms with fields ['confidence', 'limitation', 'recommendation'].",
+              "product_id": "seller-b",
+              "seller_id": "seller-b",
+              "suggestion": "Publish a three-run success rate and a machine-verifiable output schema.",
+              "tested_service_id": "risk-scan"
+            }
+          ],
+          "purchased_products": [
+            "seller-d",
+            "seller-a",
+            "seller-b"
+          ],
+          "ranking_submitted": true,
+          "receipts": [
+            {
+              "amount": 15,
+              "buyer_id": "agent-commerce-network",
+              "created_at": "2026-09-09T16:56:04.324771Z",
+              "metadata": {
+                "source": "mock-arena"
+              },
+              "seller_id": "seller-d",
+              "service_id": "pitch-review",
+              "status": "paid",
+              "trade_id": "61f5b926-4744-4253-b52f-b02dc01c1252"
+            },
+            {
+              "amount": 20,
+              "buyer_id": "agent-commerce-network",
+              "created_at": "2026-09-09T16:56:04.324771Z",
+              "metadata": {
+                "source": "mock-arena"
+              },
+              "seller_id": "seller-a",
+              "service_id": "audience-map",
+              "status": "paid",
+              "trade_id": "87fe4e99-1f0d-4758-ba55-d41495771a49"
+            },
+            {
+              "amount": 25,
+              "buyer_id": "agent-commerce-network",
+              "created_at": "2026-09-09T16:56:04.324771Z",
+              "metadata": {
+                "source": "mock-arena"
+              },
+              "seller_id": "seller-b",
+              "service_id": "risk-scan",
+              "status": "paid",
+              "trade_id": "a27a785d-8540-436f-8e12-6d519207b381"
+            }
+          ],
+          "round": "market",
+          "spent_credits": 60,
+          "tried_products": [
+            "seller-c",
+            "seller-a",
+            "seller-b"
+          ]
+        },
+        "rankings": [
+          {
+            "product_id": "seller-a",
+            "rationale": "success=True, latency=140ms, price=20, evidence_items=2",
+            "score": 79.44
+          },
+          {
+            "product_id": "seller-b",
+            "rationale": "success=True, latency=145ms, price=25, evidence_items=1",
+            "score": 71.92
+          },
+          {
+            "product_id": "seller-c",
+            "rationale": "success=True, latency=155ms, price=35, evidence_items=2",
+            "score": 71.88
+          }
+        ],
+        "violations": [
+          "Purchase b3dacd9f-928f-420f-83c0-bb5b66019e58 did not settle",
+          "Market round requires spending at least 80 credits across at least 3 products."
+        ]
+      },
+      "scenario": "purchase_does_not_settle",
+      "side_effects": {
+        "critiques_posted": 3,
+        "purchases": 4,
+        "ranking_entries": 3
+      },
+      "valid": false
+    },
+    {
+      "expectation_met": true,
+      "phase": "complete",
+      "report": {
+        "progress": {
+          "agent_id": "agent-commerce-network",
+          "critiques": [],
+          "purchased_products": [],
+          "ranking_submitted": false,
+          "receipts": [],
+          "round": "critique",
+          "spent_credits": 0,
+          "tried_products": []
+        },
+        "rankings": [],
+        "violations": [
+          "Critique round needs 3 reachable products; found 2",
+          "Critique round requires 3 tried products, a specific disagreement for each, and a ranking.",
+          "Market round requires spending at least 80 credits across at least 3 products."
+        ]
+      },
+      "scenario": "not_enough_distinct_sellers",
+      "side_effects": {
+        "critiques_posted": 0,
+        "purchases": 0,
+        "ranking_entries": 0
+      },
+      "valid": false
+    },
+    {
+      "expectation_met": true,
+      "phase": "complete",
+      "report": {
+        "progress": {
+          "agent_id": "agent-commerce-network",
+          "critiques": [
+            {
+              "disagreement": "I disagree that the current listing fully supports its promise because the delivered result states this limitation: The result uses synthetic marketplace metadata..",
+              "evidence": "The service returned receipt a665ac61-672b-4573-b945-7ee907e2c1fb in 155 ms with fields ['confidence', 'limitation', 'recommendation'].",
+              "product_id": "seller-c",
+              "seller_id": "seller-c",
+              "suggestion": "Publish a three-run success rate and a machine-verifiable output schema.",
+              "tested_service_id": "demand-forecast"
+            },
+            {
+              "disagreement": "I disagree that the current listing fully supports its promise because the delivered result states this limitation: The result uses synthetic marketplace metadata..",
+              "evidence": "The service returned receipt 87cc4692-036a-462a-88d0-424f51c396f4 in 140 ms with fields ['confidence', 'limitation', 'recommendation'].",
+              "product_id": "seller-a",
+              "seller_id": "seller-a",
+              "suggestion": "Publish a three-run success rate and a machine-verifiable output schema.",
+              "tested_service_id": "audience-map"
+            },
+            {
+              "disagreement": "I disagree that the current listing fully supports its promise because the delivered result states this limitation: The result uses synthetic marketplace metadata..",
+              "evidence": "The service returned receipt f83c9e2f-f8d5-4f5b-83e2-58d495c4882a in 145 ms with fields ['confidence', 'limitation', 'recommendation'].",
+              "product_id": "seller-b",
+              "seller_id": "seller-b",
+              "suggestion": "Publish a three-run success rate and a machine-verifiable output schema.",
+              "tested_service_id": "risk-scan"
+            }
+          ],
+          "purchased_products": [
+            "seller-d",
+            "seller-a",
+            "seller-b"
+          ],
+          "ranking_submitted": true,
+          "receipts": [
+            {
+              "amount": 15,
+              "buyer_id": "agent-commerce-network",
+              "created_at": "2026-09-09T16:56:04.346319Z",
+              "metadata": {
+                "source": "mock-arena"
+              },
+              "seller_id": "seller-d",
+              "service_id": "pitch-review",
+              "status": "paid",
+              "trade_id": "0de44da2-7217-4948-aa66-00cc9bf890a2"
+            },
+            {
+              "amount": 20,
+              "buyer_id": "agent-commerce-network",
+              "created_at": "2026-09-09T16:56:04.346319Z",
+              "metadata": {
+                "source": "mock-arena"
+              },
+              "seller_id": "seller-a",
+              "service_id": "audience-map",
+              "status": "paid",
+              "trade_id": "0116403a-8b0d-4c92-b925-aba7db4179f8"
+            },
+            {
+              "amount": 25,
+              "buyer_id": "agent-commerce-network",
+              "created_at": "2026-09-09T16:56:04.346319Z",
+              "metadata": {
+                "source": "mock-arena"
+              },
+              "seller_id": "seller-b",
+              "service_id": "risk-scan",
+              "status": "paid",
+              "trade_id": "9672cf8b-bd58-487c-9f67-fe4d4b0988e4"
+            }
+          ],
+          "round": "market",
+          "spent_credits": 60,
+          "tried_products": [
+            "seller-c",
+            "seller-a",
+            "seller-b"
+          ]
+        },
+        "rankings": [
+          {
+            "product_id": "seller-a",
+            "rationale": "success=True, latency=140ms, price=20, evidence_items=2",
+            "score": 79.44
+          },
+          {
+            "product_id": "seller-b",
+            "rationale": "success=True, latency=145ms, price=25, evidence_items=1",
+            "score": 71.92
+          },
+          {
+            "product_id": "seller-c",
+            "rationale": "success=True, latency=155ms, price=35, evidence_items=2",
+            "score": 71.88
+          }
+        ],
+        "violations": [
+          "Purchase 2f71d5ce-104a-4dc7-92e2-de27c6e3262a settled at unexpected price 34",
+          "Market round requires spending at least 80 credits across at least 3 products."
+        ]
+      },
+      "scenario": "settlement_price_changes",
+      "side_effects": {
+        "critiques_posted": 3,
+        "purchases": 4,
+        "ranking_entries": 3
+      },
+      "valid": false
+    },
+    {
+      "expectation_met": true,
+      "phase": "complete",
+      "report": {
+        "progress": {
+          "agent_id": "agent-commerce-network",
+          "critiques": [
+            {
+              "disagreement": "I disagree that the current listing fully supports its promise because the delivered result states this limitation: The result uses synthetic marketplace metadata..",
+              "evidence": "The service returned receipt 1e7e155a-9966-4760-bcfa-f237d3487e94 in 155 ms with fields ['confidence', 'limitation', 'recommendation'].",
+              "product_id": "seller-c",
+              "seller_id": "seller-c",
+              "suggestion": "Publish a three-run success rate and a machine-verifiable output schema.",
+              "tested_service_id": "demand-forecast"
+            },
+            {
+              "disagreement": "I disagree that the current listing fully supports its promise because the delivered result states this limitation: The result uses synthetic marketplace metadata..",
+              "evidence": "The service returned receipt bc2853d0-86e9-44f1-bd84-14229de94b46 in 140 ms with fields ['confidence', 'limitation', 'recommendation'].",
+              "product_id": "seller-a",
+              "seller_id": "seller-a",
+              "suggestion": "Publish a three-run success rate and a machine-verifiable output schema.",
+              "tested_service_id": "audience-map"
+            },
+            {
+              "disagreement": "I disagree that the current listing fully supports its promise because the delivered result states this limitation: The result uses synthetic marketplace metadata..",
+              "evidence": "The service returned receipt e36d886e-3452-4e2c-b554-aac7082ca0e9 in 145 ms with fields ['confidence', 'limitation', 'recommendation'].",
+              "product_id": "seller-b",
+              "seller_id": "seller-b",
+              "suggestion": "Publish a three-run success rate and a machine-verifiable output schema.",
+              "tested_service_id": "risk-scan"
+            }
+          ],
+          "purchased_products": [
+            "seller-d",
+            "seller-a",
+            "seller-b"
+          ],
+          "ranking_submitted": true,
+          "receipts": [
+            {
+              "amount": 15,
+              "buyer_id": "agent-commerce-network",
+              "created_at": "2026-09-09T16:56:04.346319Z",
+              "metadata": {
+                "source": "mock-arena"
+              },
+              "seller_id": "seller-d",
+              "service_id": "pitch-review",
+              "status": "paid",
+              "trade_id": "4afccbde-dcb9-48ac-b397-451b9024f58f"
+            },
+            {
+              "amount": 20,
+              "buyer_id": "agent-commerce-network",
+              "created_at": "2026-09-09T16:56:04.346319Z",
+              "metadata": {
+                "source": "mock-arena"
+              },
+              "seller_id": "seller-a",
+              "service_id": "audience-map",
+              "status": "paid",
+              "trade_id": "187dba4d-e462-426e-a640-16d94ceb4bd0"
+            },
+            {
+              "amount": 25,
+              "buyer_id": "agent-commerce-network",
+              "created_at": "2026-09-09T16:56:04.346319Z",
+              "metadata": {
+                "source": "mock-arena"
+              },
+              "seller_id": "seller-b",
+              "service_id": "risk-scan",
+              "status": "paid",
+              "trade_id": "8281604d-2c12-4b86-9932-4b46995a33f2"
+            }
+          ],
+          "round": "market",
+          "spent_credits": 60,
+          "tried_products": [
+            "seller-c",
+            "seller-a",
+            "seller-b"
+          ]
+        },
+        "rankings": [
+          {
+            "product_id": "seller-a",
+            "rationale": "success=True, latency=140ms, price=20, evidence_items=2",
+            "score": 79.44
+          },
+          {
+            "product_id": "seller-b",
+            "rationale": "success=True, latency=145ms, price=25, evidence_items=1",
+            "score": 71.92
+          },
+          {
+            "product_id": "seller-c",
+            "rationale": "success=True, latency=155ms, price=35, evidence_items=2",
+            "score": 71.88
+          }
+        ],
+        "violations": [
+          "Purchase of demand-forecast failed: TimeoutError",
+          "Market round requires spending at least 80 credits across at least 3 products."
+        ]
+      },
+      "scenario": "purchase_api_times_out",
+      "side_effects": {
+        "critiques_posted": 3,
+        "purchases": 3,
+        "ranking_entries": 3
+      },
+      "valid": false
+    },
+    {
+      "expectation_met": true,
+      "phase": "complete",
+      "report": {
+        "progress": {
+          "agent_id": "agent-commerce-network",
+          "critiques": [
+            {
+              "disagreement": "I disagree that the current listing fully supports its promise because the delivered result states this limitation: The result uses synthetic marketplace metadata..",
+              "evidence": "The service returned receipt d2380bc6-30de-4b8f-ab9f-774fc5ec6d9b in 155 ms with fields ['confidence', 'limitation', 'recommendation'].",
+              "product_id": "seller-c",
+              "seller_id": "seller-c",
+              "suggestion": "Publish a three-run success rate and a machine-verifiable output schema.",
+              "tested_service_id": "demand-forecast"
+            },
+            {
+              "disagreement": "I disagree that the current listing fully supports its promise because the delivered result states this limitation: The result uses synthetic marketplace metadata..",
+              "evidence": "The service returned receipt bce09feb-f1c0-4cd4-a0f0-1ab88f7d5a31 in 140 ms with fields ['confidence', 'limitation', 'recommendation'].",
+              "product_id": "seller-a",
+              "seller_id": "seller-a",
+              "suggestion": "Publish a three-run success rate and a machine-verifiable output schema.",
+              "tested_service_id": "audience-map"
+            },
+            {
+              "disagreement": "I disagree that the current listing fully supports its promise because the delivered result states this limitation: The result uses synthetic marketplace metadata..",
+              "evidence": "The service returned receipt c39d01ee-2cdf-44bd-9602-d23a82a14bea in 145 ms with fields ['confidence', 'limitation', 'recommendation'].",
+              "product_id": "seller-b",
+              "seller_id": "seller-b",
+              "suggestion": "Publish a three-run success rate and a machine-verifiable output schema.",
+              "tested_service_id": "risk-scan"
+            }
+          ],
+          "purchased_products": [
+            "seller-d"
+          ],
+          "ranking_submitted": true,
+          "receipts": [
+            {
+              "amount": 15,
+              "buyer_id": "agent-commerce-network",
+              "created_at": "2026-09-09T16:56:04.365070Z",
+              "metadata": {
+                "source": "mock-arena"
+              },
+              "seller_id": "seller-d",
+              "service_id": "pitch-review",
+              "status": "paid",
+              "trade_id": "synthetic-duplicate-receipt"
+            }
+          ],
+          "round": "market",
+          "spent_credits": 15,
+          "tried_products": [
+            "seller-c",
+            "seller-a",
+            "seller-b"
+          ]
+        },
+        "rankings": [
+          {
+            "product_id": "seller-a",
+            "rationale": "success=True, latency=140ms, price=20, evidence_items=2",
+            "score": 79.44
+          },
+          {
+            "product_id": "seller-b",
+            "rationale": "success=True, latency=145ms, price=25, evidence_items=1",
+            "score": 71.92
+          },
+          {
+            "product_id": "seller-c",
+            "rationale": "success=True, latency=155ms, price=35, evidence_items=2",
+            "score": 71.88
+          }
+        ],
+        "violations": [
+          "Duplicate receipt detected: synthetic-duplicate-receipt",
+          "Market round requires spending at least 80 credits across at least 3 products."
+        ]
+      },
+      "scenario": "duplicate_receipts",
+      "side_effects": {
+        "critiques_posted": 3,
+        "purchases": 4,
+        "ranking_entries": 3
+      },
+      "valid": false
+    }
+  ],
+  "suite_passed": true
+}

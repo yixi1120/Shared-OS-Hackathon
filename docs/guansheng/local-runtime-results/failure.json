@@ -1,0 +1,24 @@
+{
+  "mode": "local_runtime_demo",
+  "request": {
+    "quote_id": "d06c04f2-3261-4492-8739-12333550344f",
+    "buyer_id": "local-demo-buyer",
+    "service_id": "verified-transaction-trace",
+    "amount": 12,
+    "idempotency_key": "local-demo-failure-001",
+    "input": {
+      "events": []
+    }
+  },
+  "http_status": 422,
+  "response": {
+    "detail": [
+      {
+        "loc": [
+          "events"
+        ],
+        "type": "too_short"
+      }
+    ]
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "run_at": "2026-09-09T16:56:02.556161+00:00",
+  "success_status": 200,
+  "failure_status": 422,
+  "identity_mismatch_status": 409,
+  "local_api_elapsed_ms": 7.132,
+  "report_score_from_existing_telemetry": 100.0,
+  "source_commit": "ebac64cb6182607f029c00bc17d07a114a041f48",
+  "mode": "local_runtime_demo",
+  "live_sharednet_test": false,
+  "two_hour_soak_test": false
+}

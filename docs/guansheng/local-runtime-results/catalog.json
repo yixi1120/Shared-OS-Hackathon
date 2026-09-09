@@ -1,0 +1,598 @@
+[
+  {
+    "service_id": "verified-transaction-trace",
+    "seller_id": "agent-commerce-network",
+    "name": "Verified Transaction Trace",
+    "description": "Inspect one supplied transaction's completion, stage order, price, paid-to-delivered latency, schema assertions and disputes. Returns the runtime's deterministic report and evidence references. Source claims are retained but are not authenticated by this local runtime.",
+    "price": 6,
+    "tags": [
+      "transaction",
+      "telemetry",
+      "reputation",
+      "verification"
+    ],
+    "evidence": [
+      "stage order",
+      "price consistency",
+      "latency",
+      "schema validity"
+    ],
+    "reachable": true,
+    "reputation": 0.8,
+    "input_schema": {
+      "$defs": {
+        "SubmittedEvent": {
+          "additionalProperties": false,
+          "description": "Preserve source claims without confusing them with verified evidence.",
+          "properties": {
+            "transaction_id": {
+              "title": "Transaction Id",
+              "type": "string"
+            },
+            "subject_agent_id": {
+              "title": "Subject Agent Id",
+              "type": "string"
+            },
+            "stage": {
+              "$ref": "#/$defs/TransactionStage"
+            },
+            "occurred_at": {
+              "format": "date-time",
+              "title": "Occurred At",
+              "type": "string"
+            },
+            "amount": {
+              "anyOf": [
+                {
+                  "maximum": 100,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Amount"
+            },
+            "latency_ms": {
+              "anyOf": [
+                {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Latency Ms"
+            },
+            "schema_valid": {
+              "default": true,
+              "title": "Schema Valid",
+              "type": "boolean"
+            },
+            "evidence_id": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Evidence Id"
+            },
+            "provenance": {
+              "default": "self_reported",
+              "enum": [
+                "platform",
+                "bilateral",
+                "self_reported"
+              ],
+              "title": "Provenance",
+              "type": "string"
+            }
+          },
+          "required": [
+            "transaction_id",
+            "subject_agent_id",
+            "stage",
+            "occurred_at"
+          ],
+          "title": "SubmittedEvent",
+          "type": "object"
+        },
+        "TransactionStage": {
+          "enum": [
+            "requested",
+            "quoted",
+            "accepted",
+            "paid",
+            "delivered",
+            "acknowledged",
+            "disputed"
+          ],
+          "title": "TransactionStage",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "events": {
+          "items": {
+            "$ref": "#/$defs/SubmittedEvent"
+          },
+          "maxItems": 100,
+          "minItems": 1,
+          "title": "Events",
+          "type": "array"
+        }
+      },
+      "required": [
+        "events"
+      ],
+      "title": "TransactionInput",
+      "type": "object"
+    },
+    "report_schema": {
+      "properties": {
+        "transaction_id": {
+          "title": "Transaction Id",
+          "type": "string"
+        },
+        "subject_agent_id": {
+          "title": "Subject Agent Id",
+          "type": "string"
+        },
+        "completed": {
+          "title": "Completed",
+          "type": "boolean"
+        },
+        "ordered": {
+          "title": "Ordered",
+          "type": "boolean"
+        },
+        "schema_valid_rate": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Schema Valid Rate",
+          "type": "number"
+        },
+        "price_consistent": {
+          "title": "Price Consistent",
+          "type": "boolean"
+        },
+        "disputed": {
+          "title": "Disputed",
+          "type": "boolean"
+        },
+        "end_to_end_latency_ms": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End To End Latency Ms"
+        },
+        "reliability_score": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Reliability Score",
+          "type": "number"
+        },
+        "confidence": {
+          "title": "Confidence",
+          "type": "string"
+        },
+        "evidence_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Ids",
+          "type": "array"
+        },
+        "risk_flags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Risk Flags",
+          "type": "array"
+        }
+      },
+      "required": [
+        "transaction_id",
+        "subject_agent_id",
+        "completed",
+        "ordered",
+        "schema_valid_rate",
+        "price_consistent",
+        "disputed",
+        "reliability_score",
+        "confidence"
+      ],
+      "title": "TransactionTraceReport",
+      "type": "object"
+    },
+    "delivery_envelope": {
+      "trade_id": "string",
+      "status": "delivered",
+      "output": "report_schema",
+      "evidence_provenance": "list of source claims; verified is always false in local runtime"
+    },
+    "purchase_flow": [
+      {
+        "method": "POST",
+        "path": "/v1/quotes",
+        "required": [
+          "buyer_id",
+          "service_id",
+          "budget"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/v1/quotes/{quote_id}/negotiate",
+        "optional": true,
+        "required": [
+          "buyer_offer"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/v1/orders",
+        "required": [
+          "quote_id",
+          "buyer_id",
+          "service_id",
+          "amount",
+          "idempotency_key",
+          "input"
+        ],
+        "note": "Use the actual quoted/agreed amount; input follows input_schema."
+      },
+      {
+        "method": "POST",
+        "path": "/v1/orders/{trade_id}/deliver"
+      }
+    ],
+    "pricing": {
+      "catalog_price_is_binding": false,
+      "binding_price_source": "/v1/quotes ask_price or accepted negotiated price",
+      "runtime_policy": {
+        "base_price": 12,
+        "floor_ratio": 0.72,
+        "first_purchase_discount": 0.1,
+        "max_price": 40
+      },
+      "note": "The current shared runtime base price differs from the 6/8 catalog reference prices. Do not pay the reference price without obtaining a quote. Team pricing reconciliation is pending.",
+      "bundles_enabled": false
+    },
+    "data_not_accepted": [
+      "raw prompts",
+      "full deliverables",
+      "credentials",
+      "extra payload fields"
+    ],
+    "limitations": [
+      "Local runtime demonstration; no live SharedNet address or Cloud audit has been configured.",
+      "A single transaction is not global reputation.",
+      "Provenance is a source claim, not signature verification; existing scoring does not weight provenance.",
+      "300 seconds is the Arena requirement, not a measured production SLA.",
+      "The local ledger status paid does not prove an Arena credit transfer.",
+      "Listing reputation values are repository placeholders, not verified reputation measurements."
+    ]
+  },
+  {
+    "service_id": "transaction-risk-report",
+    "seller_id": "agent-commerce-network",
+    "name": "Transaction Risk Report",
+    "description": "Inspect one supplied transaction's completion, stage order, price, paid-to-delivered latency, schema assertions and disputes. Returns the runtime's deterministic report and evidence references. Source claims are retained but are not authenticated by this local runtime. Adds a fixed interpretation explaining scope; no extra risk model.",
+    "price": 8,
+    "tags": [
+      "transaction",
+      "risk",
+      "evidence"
+    ],
+    "evidence": [
+      "machine-readable flags",
+      "score breakdown",
+      "sample-size disclosure"
+    ],
+    "reachable": true,
+    "reputation": 0.78,
+    "input_schema": {
+      "$defs": {
+        "SubmittedEvent": {
+          "additionalProperties": false,
+          "description": "Preserve source claims without confusing them with verified evidence.",
+          "properties": {
+            "transaction_id": {
+              "title": "Transaction Id",
+              "type": "string"
+            },
+            "subject_agent_id": {
+              "title": "Subject Agent Id",
+              "type": "string"
+            },
+            "stage": {
+              "$ref": "#/$defs/TransactionStage"
+            },
+            "occurred_at": {
+              "format": "date-time",
+              "title": "Occurred At",
+              "type": "string"
+            },
+            "amount": {
+              "anyOf": [
+                {
+                  "maximum": 100,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Amount"
+            },
+            "latency_ms": {
+              "anyOf": [
+                {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Latency Ms"
+            },
+            "schema_valid": {
+              "default": true,
+              "title": "Schema Valid",
+              "type": "boolean"
+            },
+            "evidence_id": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Evidence Id"
+            },
+            "provenance": {
+              "default": "self_reported",
+              "enum": [
+                "platform",
+                "bilateral",
+                "self_reported"
+              ],
+              "title": "Provenance",
+              "type": "string"
+            }
+          },
+          "required": [
+            "transaction_id",
+            "subject_agent_id",
+            "stage",
+            "occurred_at"
+          ],
+          "title": "SubmittedEvent",
+          "type": "object"
+        },
+        "TransactionStage": {
+          "enum": [
+            "requested",
+            "quoted",
+            "accepted",
+            "paid",
+            "delivered",
+            "acknowledged",
+            "disputed"
+          ],
+          "title": "TransactionStage",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "events": {
+          "items": {
+            "$ref": "#/$defs/SubmittedEvent"
+          },
+          "maxItems": 100,
+          "minItems": 1,
+          "title": "Events",
+          "type": "array"
+        }
+      },
+      "required": [
+        "events"
+      ],
+      "title": "TransactionInput",
+      "type": "object"
+    },
+    "report_schema": {
+      "properties": {
+        "transaction_id": {
+          "title": "Transaction Id",
+          "type": "string"
+        },
+        "subject_agent_id": {
+          "title": "Subject Agent Id",
+          "type": "string"
+        },
+        "completed": {
+          "title": "Completed",
+          "type": "boolean"
+        },
+        "ordered": {
+          "title": "Ordered",
+          "type": "boolean"
+        },
+        "schema_valid_rate": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Schema Valid Rate",
+          "type": "number"
+        },
+        "price_consistent": {
+          "title": "Price Consistent",
+          "type": "boolean"
+        },
+        "disputed": {
+          "title": "Disputed",
+          "type": "boolean"
+        },
+        "end_to_end_latency_ms": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End To End Latency Ms"
+        },
+        "reliability_score": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Reliability Score",
+          "type": "number"
+        },
+        "confidence": {
+          "title": "Confidence",
+          "type": "string"
+        },
+        "evidence_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Ids",
+          "type": "array"
+        },
+        "risk_flags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Risk Flags",
+          "type": "array"
+        },
+        "interpretation": {
+          "type": "object",
+          "properties": {
+            "meaning": {
+              "type": "string"
+            },
+            "not_meaning": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "meaning",
+            "not_meaning"
+          ]
+        }
+      },
+      "required": [
+        "transaction_id",
+        "subject_agent_id",
+        "completed",
+        "ordered",
+        "schema_valid_rate",
+        "price_consistent",
+        "disputed",
+        "reliability_score",
+        "confidence",
+        "interpretation"
+      ],
+      "title": "TransactionTraceReport",
+      "type": "object"
+    },
+    "delivery_envelope": {
+      "trade_id": "string",
+      "status": "delivered",
+      "output": "report_schema",
+      "evidence_provenance": "list of source claims; verified is always false in local runtime"
+    },
+    "purchase_flow": [
+      {
+        "method": "POST",
+        "path": "/v1/quotes",
+        "required": [
+          "buyer_id",
+          "service_id",
+          "budget"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/v1/quotes/{quote_id}/negotiate",
+        "optional": true,
+        "required": [
+          "buyer_offer"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/v1/orders",
+        "required": [
+          "quote_id",
+          "buyer_id",
+          "service_id",
+          "amount",
+          "idempotency_key",
+          "input"
+        ],
+        "note": "Use the actual quoted/agreed amount; input follows input_schema."
+      },
+      {
+        "method": "POST",
+        "path": "/v1/orders/{trade_id}/deliver"
+      }
+    ],
+    "pricing": {
+      "catalog_price_is_binding": false,
+      "binding_price_source": "/v1/quotes ask_price or accepted negotiated price",
+      "runtime_policy": {
+        "base_price": 12,
+        "floor_ratio": 0.72,
+        "first_purchase_discount": 0.1,
+        "max_price": 40
+      },
+      "note": "The current shared runtime base price differs from the 6/8 catalog reference prices. Do not pay the reference price without obtaining a quote. Team pricing reconciliation is pending.",
+      "bundles_enabled": false
+    },
+    "data_not_accepted": [
+      "raw prompts",
+      "full deliverables",
+      "credentials",
+      "extra payload fields"
+    ],
+    "limitations": [
+      "Local runtime demonstration; no live SharedNet address or Cloud audit has been configured.",
+      "A single transaction is not global reputation.",
+      "Provenance is a source claim, not signature verification; existing scoring does not weight provenance.",
+      "300 seconds is the Arena requirement, not a measured production SLA.",
+      "The local ledger status paid does not prove an Arena credit transfer.",
+      "Listing reputation values are repository placeholders, not verified reputation measurements."
+    ]
+  }
+]

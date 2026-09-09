@@ -1,0 +1,64 @@
+{
+  "mode": "local_runtime_demo",
+  "request": {
+    "quote_id": "d06c04f2-3261-4492-8739-12333550344f",
+    "buyer_id": "different-buyer",
+    "service_id": "verified-transaction-trace",
+    "amount": 12,
+    "idempotency_key": "local-demo-mismatch-001",
+    "input": {
+      "events": [
+        {
+          "transaction_id": "local-demo-tx",
+          "subject_agent_id": "local-demo-seller",
+          "stage": "quoted",
+          "occurred_at": "2026-09-10T00:00:00Z",
+          "amount": 10,
+          "evidence_id": "local-evidence-0",
+          "provenance": "self_reported"
+        },
+        {
+          "transaction_id": "local-demo-tx",
+          "subject_agent_id": "local-demo-seller",
+          "stage": "accepted",
+          "occurred_at": "2026-09-10T00:00:01Z",
+          "amount": 10,
+          "evidence_id": "local-evidence-1",
+          "provenance": "self_reported"
+        },
+        {
+          "transaction_id": "local-demo-tx",
+          "subject_agent_id": "local-demo-seller",
+          "stage": "paid",
+          "occurred_at": "2026-09-10T00:00:02Z",
+          "amount": 10,
+          "evidence_id": "local-evidence-2",
+          "provenance": "self_reported"
+        },
+        {
+          "transaction_id": "local-demo-tx",
+          "subject_agent_id": "local-demo-seller",
+          "stage": "delivered",
+          "occurred_at": "2026-09-10T00:00:03Z",
+          "amount": 10,
+          "evidence_id": "local-evidence-3",
+          "provenance": "self_reported"
+        },
+        {
+          "transaction_id": "local-demo-tx",
+          "subject_agent_id": "local-demo-seller",
+          "stage": "acknowledged",
+          "occurred_at": "2026-09-10T00:00:04Z",
+          "amount": 10,
+          "evidence_id": "local-evidence-4",
+          "provenance": "self_reported"
+        }
+      ]
+    }
+  },
+  "http_status": 409,
+  "response": {
+    "detail": "Order does not match quote"
+  },
+  "notice": "409 quote identity mismatch, not SharedOS authorization."
+}

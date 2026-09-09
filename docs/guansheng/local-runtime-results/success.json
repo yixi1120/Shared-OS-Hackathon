@@ -1,0 +1,192 @@
+{
+  "mode": "local_runtime_demo",
+  "request": {
+    "quote_id": "d06c04f2-3261-4492-8739-12333550344f",
+    "buyer_id": "local-demo-buyer",
+    "service_id": "verified-transaction-trace",
+    "amount": 12,
+    "idempotency_key": "local-demo-success-001",
+    "input": {
+      "events": [
+        {
+          "transaction_id": "local-demo-tx",
+          "subject_agent_id": "local-demo-seller",
+          "stage": "quoted",
+          "occurred_at": "2026-09-10T00:00:00Z",
+          "amount": 10,
+          "evidence_id": "local-evidence-0",
+          "provenance": "self_reported"
+        },
+        {
+          "transaction_id": "local-demo-tx",
+          "subject_agent_id": "local-demo-seller",
+          "stage": "accepted",
+          "occurred_at": "2026-09-10T00:00:01Z",
+          "amount": 10,
+          "evidence_id": "local-evidence-1",
+          "provenance": "self_reported"
+        },
+        {
+          "transaction_id": "local-demo-tx",
+          "subject_agent_id": "local-demo-seller",
+          "stage": "paid",
+          "occurred_at": "2026-09-10T00:00:02Z",
+          "amount": 10,
+          "evidence_id": "local-evidence-2",
+          "provenance": "self_reported"
+        },
+        {
+          "transaction_id": "local-demo-tx",
+          "subject_agent_id": "local-demo-seller",
+          "stage": "delivered",
+          "occurred_at": "2026-09-10T00:00:03Z",
+          "amount": 10,
+          "evidence_id": "local-evidence-3",
+          "provenance": "self_reported"
+        },
+        {
+          "transaction_id": "local-demo-tx",
+          "subject_agent_id": "local-demo-seller",
+          "stage": "acknowledged",
+          "occurred_at": "2026-09-10T00:00:04Z",
+          "amount": 10,
+          "evidence_id": "local-evidence-4",
+          "provenance": "self_reported"
+        }
+      ]
+    }
+  },
+  "quote": {
+    "quote_id": "d06c04f2-3261-4492-8739-12333550344f",
+    "buyer_id": "local-demo-buyer",
+    "service_id": "verified-transaction-trace",
+    "ask_price": 12,
+    "reservation_price": 9,
+    "pitch": "For 12 credits, inspect one supplied transaction's structured lifecycle evidence. Source claims are not authenticated by the local runtime; this is not global reputation. Paying cannot improve the score.",
+    "expires_at": "2026-09-09T17:06:02.530724Z"
+  },
+  "receipt": {
+    "trade_id": "a2d021d6-c370-4ac8-9783-846be727da72",
+    "buyer_id": "local-demo-buyer",
+    "seller_id": "agent-commerce-network",
+    "service_id": "verified-transaction-trace",
+    "amount": 12,
+    "status": "paid",
+    "created_at": "2026-09-09T16:56:02.548364Z",
+    "metadata": {
+      "input": {
+        "events": [
+          {
+            "transaction_id": "local-demo-tx",
+            "subject_agent_id": "local-demo-seller",
+            "stage": "quoted",
+            "occurred_at": "2026-09-10T00:00:00Z",
+            "amount": 10,
+            "latency_ms": null,
+            "schema_valid": true,
+            "evidence_id": "local-evidence-0",
+            "provenance": "self_reported"
+          },
+          {
+            "transaction_id": "local-demo-tx",
+            "subject_agent_id": "local-demo-seller",
+            "stage": "accepted",
+            "occurred_at": "2026-09-10T00:00:01Z",
+            "amount": 10,
+            "latency_ms": null,
+            "schema_valid": true,
+            "evidence_id": "local-evidence-1",
+            "provenance": "self_reported"
+          },
+          {
+            "transaction_id": "local-demo-tx",
+            "subject_agent_id": "local-demo-seller",
+            "stage": "paid",
+            "occurred_at": "2026-09-10T00:00:02Z",
+            "amount": 10,
+            "latency_ms": null,
+            "schema_valid": true,
+            "evidence_id": "local-evidence-2",
+            "provenance": "self_reported"
+          },
+          {
+            "transaction_id": "local-demo-tx",
+            "subject_agent_id": "local-demo-seller",
+            "stage": "delivered",
+            "occurred_at": "2026-09-10T00:00:03Z",
+            "amount": 10,
+            "latency_ms": null,
+            "schema_valid": true,
+            "evidence_id": "local-evidence-3",
+            "provenance": "self_reported"
+          },
+          {
+            "transaction_id": "local-demo-tx",
+            "subject_agent_id": "local-demo-seller",
+            "stage": "acknowledged",
+            "occurred_at": "2026-09-10T00:00:04Z",
+            "amount": 10,
+            "latency_ms": null,
+            "schema_valid": true,
+            "evidence_id": "local-evidence-4",
+            "provenance": "self_reported"
+          }
+        ]
+      }
+    }
+  },
+  "delivery": {
+    "trade_id": "a2d021d6-c370-4ac8-9783-846be727da72",
+    "status": "delivered",
+    "output": {
+      "transaction_id": "local-demo-tx",
+      "subject_agent_id": "local-demo-seller",
+      "completed": true,
+      "ordered": true,
+      "schema_valid_rate": 1.0,
+      "price_consistent": true,
+      "disputed": false,
+      "end_to_end_latency_ms": 1000,
+      "reliability_score": 100.0,
+      "confidence": "single-transaction",
+      "evidence_ids": [
+        "local-evidence-0",
+        "local-evidence-1",
+        "local-evidence-2",
+        "local-evidence-3",
+        "local-evidence-4"
+      ],
+      "risk_flags": []
+    },
+    "evidence_provenance": [
+      {
+        "evidence_id": "local-evidence-0",
+        "claimed": "self_reported",
+        "verified": false
+      },
+      {
+        "evidence_id": "local-evidence-1",
+        "claimed": "self_reported",
+        "verified": false
+      },
+      {
+        "evidence_id": "local-evidence-2",
+        "claimed": "self_reported",
+        "verified": false
+      },
+      {
+        "evidence_id": "local-evidence-3",
+        "claimed": "self_reported",
+        "verified": false
+      },
+      {
+        "evidence_id": "local-evidence-4",
+        "claimed": "self_reported",
+        "verified": false
+      }
+    ]
+  },
+  "local_api_elapsed_ms": 7.132,
+  "network_payment": false,
+  "sharedos_authorization": false
+}
