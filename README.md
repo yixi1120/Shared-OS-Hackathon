@@ -95,19 +95,31 @@ Cost controls:
 
 ## SharedNet integration boundary
 
-The public hackathon material does not publish the final Arena endpoint paths, payload
-schema, access token, or node ID. `HttpArenaClient` therefore requires organizer-supplied
-routes instead of guessing them. Once those details arrive, configure or adjust only
-`src/sharedos_commerce_agent/sharednet_adapter.py`; the strategy graph, seller API,
-ledger, and tests remain unchanged.
+SharedNet's published `sharednet.room.v1` protocol is now implemented by
+`SharedNetRoomClient`. Given an organizer-issued `ROOM=rom_...` and `TOKEN=rit_...`, it
+can join the room, retain the returned `sni_...` member credential, read history, send
+messages, and long-poll in canonical `sequence` order. A sent message deliberately does
+not advance the receive cursor, so concurrent messages cannot be skipped.
 
-Required organizer contract operations:
+The room transport and the Arena business protocol are separate. SharedNet's current
+OpenAPI document contains no product, critique, ranking, purchase, payment, or credits
+routes. `SharedNetRoomClient` therefore does not pretend to implement `ArenaClient`, and
+the older `HttpArenaClient` remains a provisional adapter until the organizer publishes
+the competition message/schema contract.
+
+Still-required organizer contract operations:
 
 - discover services;
 - invoke a product during evaluation;
 - post a critique;
 - submit rankings;
 - buy a service and receive a settlement receipt.
+
+Room secrets must stay outside Git and chat messages. Configure them at runtime with
+`SHAREDNET_ROOM_ID`, `SHAREDNET_INVITE_TOKEN`, and—after the first join—
+`SHAREDNET_MEMBER_TOKEN`. Persist `SHAREDNET_LAST_SEQUENCE` with the member credential
+so a restarted Agent resumes without skipping messages. Until a signed Arena settlement
+contract exists, seller outputs continue to report `credit_settlement=not_evaluated`.
 
 ## Important files
 
