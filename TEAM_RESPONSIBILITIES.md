@@ -141,12 +141,14 @@ Agent 功能分成两个方向，但不构建两个互相用自然语言沟通�
 #### SharedOS 与 SharedNet
 
 - 将个人 Agent 注册到 SharedNet。
+- 在 `#arena-support` 获取 tenant ID 和 owner address，再完成节点注册。
 - 获取并验证 node ID。
 - 将产品部署到 SharedOS Cloud。
 - 实现最小权限 capability grant。
 - 验证 discovery 和 invoke 分别受到授权控制。
 - 保存必要的 authorization decision 和 audit reference。
 - 对接官方最终 Arena endpoint 和 payload schema。
+- 保存提交必需的 purpose string、产品 Agent addresses 和 SharedNet node ID。
 - 第一优先确认 SharedOS/A2A 是否提供 Task lifecycle hook、callback、认证身份或可信事件来源。
 - 第一优先确认 Arena 是否独立提供 credits 结算 API、receipt 和幂等语义；我方不自建余额或托管系统。
 - 明确数据可信度优先级：平台事件/签名 receipt > 双方共同确认 > 单方自报；输出中必须保留 provenance。

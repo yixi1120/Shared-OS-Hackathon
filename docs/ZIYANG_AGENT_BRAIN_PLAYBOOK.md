@@ -368,6 +368,7 @@ report
 - [x] Critique / Market / Full 三种运行模式
 - [x] State 可携带上一轮 `progress`
 - [x] 12 个确定性 Harness 场景
+- [x] Round 1 服务探测受控并发
 - [x] 错误价格检测
 - [x] API 超时检测
 - [x] 重复 receipt 检测
@@ -380,9 +381,9 @@ report
 - [x] 购买副作用幂等键
 - [x] Critique / ranking 副作用幂等键
 - [x] 成功但 acknowledgement 丢失的三类故障场景
-- [ ] Seller 并发 Harness
+- [x] Seller 并发 Harness
 - [ ] 两小时 Soak Harness
-- [ ] Persona 与多随机种子实验
+- [x] Persona 与多随机种子实验
 - [ ] 真实 SharedNet contract test
 
 ---

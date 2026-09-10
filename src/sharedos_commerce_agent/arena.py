@@ -45,11 +45,13 @@ class ArenaRunner:
         critique_strategy: CritiqueStrategy | None = None,
         market_strategy: MarketStrategy | None = None,
         checkpointer=None,
+        max_concurrent_evaluations: int = 3,
     ) -> None:
         self.client = client
         self.critique_strategy = critique_strategy or CritiqueStrategy()
         self.market_strategy = market_strategy or MarketStrategy()
         self.checkpointer = checkpointer or InMemorySaver()
+        self.max_concurrent_evaluations = max_concurrent_evaluations
 
     async def run(self, agent_id: str) -> ArenaReport:
         return await self.run_round(agent_id, ArenaRunMode.FULL_DRY_RUN)
@@ -70,6 +72,7 @@ class ArenaRunner:
             critique_strategy=self.critique_strategy,
             market_strategy=self.market_strategy,
             checkpointer=self.checkpointer,
+            max_concurrent_evaluations=self.max_concurrent_evaluations,
         )
         active_run_id = run_id or str(uuid4())
         graph_input = {
@@ -93,6 +96,7 @@ class ArenaRunner:
             critique_strategy=self.critique_strategy,
             market_strategy=self.market_strategy,
             checkpointer=self.checkpointer,
+            max_concurrent_evaluations=self.max_concurrent_evaluations,
         )
         config = {"configurable": {"thread_id": run_id}}
         state = await graph.ainvoke(None, config=config)

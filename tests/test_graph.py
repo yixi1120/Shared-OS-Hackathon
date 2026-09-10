@@ -1,3 +1,5 @@
+import asyncio
+
 import pytest
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
@@ -20,6 +22,22 @@ class CrashAfterSecondPaymentClient(MockArenaClient):
             self.crashed = True
             raise SimulatedProcessCrash("process stopped after payment")
         return receipt
+
+
+class ConcurrencyProbeClient(MockArenaClient):
+    active_invocations = 0
+    max_active_invocations = 0
+
+    async def invoke_service(self, listing):
+        self.active_invocations += 1
+        self.max_active_invocations = max(
+            self.max_active_invocations, self.active_invocations
+        )
+        try:
+            await asyncio.sleep(0.02)
+            return await super().invoke_service(listing)
+        finally:
+            self.active_invocations -= 1
 
 
 async def test_graph_exposes_business_nodes_in_execution_order() -> None:
@@ -95,6 +113,21 @@ async def test_critique_round_does_not_spend_market_credits() -> None:
     ]
     assert state["progress"].spent_credits == 0
     assert state["compliant"] is True
+
+
+async def test_service_evaluations_run_with_bounded_concurrency() -> None:
+    client = ConcurrencyProbeClient()
+    graph = build_arena_graph(client, max_concurrent_evaluations=2)
+
+    state = await graph.ainvoke(
+        {
+            "agent_id": "agent-commerce-network",
+            "run_mode": ArenaRunMode.CRITIQUE,
+        }
+    )
+
+    assert state["compliant"] is True
+    assert client.max_active_invocations == 2
 
 
 async def test_market_round_skips_critique_actions() -> None:

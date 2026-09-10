@@ -22,6 +22,7 @@ dev = [
 [project.scripts]
 arena-harness = "sharedos_commerce_agent.harness:main"
 commerce-api = "sharedos_commerce_agent.api:run"
+seller-harness = "sharedos_commerce_agent.seller_harness:main"
 
 [build-system]
 requires = ["hatchling"]

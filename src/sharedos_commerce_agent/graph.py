@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import operator
 from collections.abc import Awaitable, Callable
 from typing import Annotated, Literal, TypedDict
@@ -45,8 +46,12 @@ def build_arena_graph(
     critique_strategy: CritiqueStrategy | None = None,
     market_strategy: MarketStrategy | None = None,
     checkpointer=None,
+    max_concurrent_evaluations: int = 3,
 ):
     """Compile the Arena workflow with business-relevant, testable nodes."""
+
+    if max_concurrent_evaluations < 1:
+        raise ValueError("max_concurrent_evaluations must be positive")
 
     critique_policy = critique_strategy or CritiqueStrategy()
     market_policy = market_strategy or MarketStrategy()
@@ -111,11 +116,12 @@ def build_arena_graph(
         """Run products and retain objective observations before writing any opinion."""
 
         progress = state["progress"].model_copy(deep=True)
-        results: dict[str, ServiceResult] = {}
+        semaphore = asyncio.Semaphore(max_concurrent_evaluations)
 
-        for listing in state["evaluation_targets"]:
+        async def invoke_one(listing: ServiceListing) -> tuple[str, ServiceResult]:
             try:
-                result = await client.invoke_service(listing)
+                async with semaphore:
+                    result = await client.invoke_service(listing)
             except Exception as exc:  # Network/provider failures become evidence.
                 result = ServiceResult(
                     service_id=listing.service_id,
@@ -124,7 +130,13 @@ def build_arena_graph(
                     latency_ms=0,
                     output={"error_type": type(exc).__name__},
                 )
-            results[listing.service_id] = result
+            return listing.service_id, result
+
+        pairs = await asyncio.gather(
+            *(invoke_one(listing) for listing in state["evaluation_targets"])
+        )
+        results = dict(pairs)
+        for listing in state["evaluation_targets"]:
             progress.tried_products.add(listing.seller_id)
 
         return {

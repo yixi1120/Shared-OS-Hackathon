@@ -7,7 +7,8 @@ tested end to end without a paid model key.
 ## What it does
 
 - Competes in the Critique round: discovers distinct products, objectively probes at least
-  three, then translates the recorded evidence into the required disagreement and ranking.
+  three with bounded concurrency, then translates the recorded evidence into the required
+  disagreement and ranking.
 - Competes in the Market round: creates a value-ranked purchase plan, spends 80–100 of
   the 100 credits, and buys from at least three distinct sellers.
 - Sells machine-readable **A2A Interaction Trace** and **A2A Interaction Risk Report**
@@ -45,6 +46,7 @@ Requires `uv` and Python 3.11+.
 uv sync
 uv run pytest -q
 uv run arena-harness
+uv run seller-harness
 uv run commerce-api
 ```
 
@@ -68,6 +70,10 @@ discovery, while quote, negotiation, order, delivery, and order lookup endpoints
 `Authorization: Bearer <token>`. This is a provisional ingress guard; replace it with the
 organizer-advertised A2A security scheme and bind authenticated identity to `buyer_id`
 when that contract is available.
+
+`seller-harness` creates concurrent buyer personas and deliberately replays every order,
+mutates reused idempotency keys, and attempts to spoof trusted provenance. For a timed
+soak run, use `uv run seller-harness --concurrency 16 --duration-seconds 7200`.
 
 ## Model and cost policy
 
@@ -110,4 +116,5 @@ Required organizer contract operations:
 - `src/sharedos_commerce_agent/api.py` — seller REST API
 - `src/sharedos_commerce_agent/ledger.py` — idempotent service-order ledger
 - `src/sharedos_commerce_agent/harness.py` — full offline Arena simulation
+- `src/sharedos_commerce_agent/seller_harness.py` — concurrent seller and soak simulation
 - `tests/` — unit and end-to-end coverage
