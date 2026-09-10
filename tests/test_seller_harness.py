@@ -15,3 +15,21 @@ async def test_concurrent_seller_harness_isolation_and_recovery(seed: int) -> No
     assert report["idempotency_conflicts_rejected"] == 12
     assert report["provenance_downgrades"] == 12
     assert report["failures"] == []
+
+
+async def test_soak_mode_streams_progress_without_retaining_every_outcome() -> None:
+    progress: list[dict] = []
+    report = await run_seller_harness(
+        concurrency=2,
+        duration_seconds=0.03,
+        round_pause_seconds=0.005,
+        progress_every_seconds=0.001,
+        on_progress=progress.append,
+    )
+
+    assert report["passed"] is True
+    assert report["final"] is True
+    assert report["mode"] == "soak"
+    assert report["interactions"] >= 2
+    assert progress
+    assert all(item["final"] is False for item in progress)

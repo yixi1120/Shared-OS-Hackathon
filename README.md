@@ -74,6 +74,9 @@ when that contract is available.
 `seller-harness` creates concurrent buyer personas and deliberately replays every order,
 mutates reused idempotency keys, and attempts to spoof trusted provenance. For a timed
 soak run, use `uv run seller-harness --concurrency 16 --duration-seconds 7200`.
+For a resource-bounded persistent run, add
+`--ledger-path ./tmp/seller-soak.sqlite3 --round-pause-seconds 0.5`; progress is
+written to stderr every 60 seconds and the final JSON report to stdout.
 
 ## Model and cost policy
 

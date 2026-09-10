@@ -5,10 +5,11 @@ import asyncio
 import copy
 import json
 import random
+import sys
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from time import perf_counter
-from typing import Any
+from typing import Any, Callable
 
 import httpx
 
@@ -164,6 +165,10 @@ async def run_seller_harness(
     rounds: int = 2,
     duration_seconds: float | None = None,
     seed: int = 7,
+    ledger_path: str = ":memory:",
+    round_pause_seconds: float = 0.0,
+    progress_every_seconds: float | None = None,
+    on_progress: Callable[[dict[str, Any]], None] | None = None,
 ) -> dict[str, Any]:
     """Exercise concurrent buyers; duration mode turns the same oracle into a soak test."""
 
@@ -171,14 +176,50 @@ async def run_seller_harness(
         raise ValueError("concurrency and rounds must be positive")
     if duration_seconds is not None and duration_seconds <= 0:
         raise ValueError("duration_seconds must be positive")
+    if round_pause_seconds < 0:
+        raise ValueError("round_pause_seconds cannot be negative")
+    if progress_every_seconds is not None and progress_every_seconds <= 0:
+        raise ValueError("progress_every_seconds must be positive")
 
-    app = create_app(Settings(ledger_path=":memory:"))
+    app = create_app(Settings(ledger_path=ledger_path))
     transport = httpx.ASGITransport(app=app)
     rng = random.Random(seed)
     started = perf_counter()
-    outcomes: list[dict[str, Any]] = []
     failures: list[str] = []
     round_number = 0
+    successful_interactions = 0
+    deliveries = 0
+    duplicate_replays_safe = 0
+    conflicts_rejected = 0
+    provenance_downgrades = 0
+    declared_credits = 0
+    next_progress_at = (
+        started + progress_every_seconds
+        if progress_every_seconds is not None
+        else None
+    )
+
+    def snapshot(*, final: bool) -> dict[str, Any]:
+        elapsed = perf_counter() - started
+        interactions = successful_interactions + len(failures)
+        return {
+            "passed": not failures and successful_interactions == interactions,
+            "final": final,
+            "mode": "soak" if duration_seconds is not None else "fixed_rounds",
+            "seed": seed,
+            "concurrency": concurrency,
+            "rounds_completed": round_number,
+            "interactions": interactions,
+            "unique_orders": successful_interactions,
+            "deliveries": deliveries,
+            "duplicate_replays_safe": duplicate_replays_safe,
+            "idempotency_conflicts_rejected": conflicts_rejected,
+            "provenance_downgrades": provenance_downgrades,
+            "declared_credits": declared_credits,
+            "elapsed_seconds": round(elapsed, 3),
+            "interactions_per_second": round(interactions / elapsed, 2),
+            "failures": failures[:20],
+        }
 
     async with httpx.AsyncClient(transport=transport, base_url="http://seller.test") as client:
         while True:
@@ -207,36 +248,24 @@ async def run_seller_harness(
                 if isinstance(result, BaseException):
                     failures.append(f"{type(result).__name__}: {result}")
                 else:
-                    outcomes.append(result)
+                    successful_interactions += 1
+                    deliveries += int(result["delivered"])
+                    duplicate_replays_safe += int(result["duplicate_replay_safe"])
+                    conflicts_rejected += int(result["conflict_rejected"])
+                    provenance_downgrades += int(result["provenance_downgraded"])
+                    declared_credits += result["declared_credits"]
             round_number += 1
+            if (
+                next_progress_at is not None
+                and perf_counter() >= next_progress_at
+                and on_progress is not None
+            ):
+                on_progress(snapshot(final=False))
+                next_progress_at = perf_counter() + progress_every_seconds
+            if round_pause_seconds:
+                await asyncio.sleep(round_pause_seconds)
 
-    elapsed = perf_counter() - started
-    interactions = len(outcomes) + len(failures)
-    unique_trade_ids = {item["trade_id"] for item in outcomes}
-    report = {
-        "passed": not failures and len(unique_trade_ids) == len(outcomes),
-        "mode": "soak" if duration_seconds is not None else "fixed_rounds",
-        "seed": seed,
-        "concurrency": concurrency,
-        "rounds_completed": round_number,
-        "interactions": interactions,
-        "unique_orders": len(unique_trade_ids),
-        "deliveries": sum(item["delivered"] for item in outcomes),
-        "duplicate_replays_safe": sum(
-            item["duplicate_replay_safe"] for item in outcomes
-        ),
-        "idempotency_conflicts_rejected": sum(
-            item["conflict_rejected"] for item in outcomes
-        ),
-        "provenance_downgrades": sum(
-            item["provenance_downgraded"] for item in outcomes
-        ),
-        "declared_credits": sum(item["declared_credits"] for item in outcomes),
-        "elapsed_seconds": round(elapsed, 3),
-        "interactions_per_second": round(interactions / elapsed, 2),
-        "failures": failures[:20],
-    }
-    return report
+    return snapshot(final=True)
 
 
 def main() -> None:
@@ -245,13 +274,24 @@ def main() -> None:
     parser.add_argument("--rounds", type=int, default=2)
     parser.add_argument("--duration-seconds", type=float)
     parser.add_argument("--seed", type=int, default=7)
+    parser.add_argument("--ledger-path", default=":memory:")
+    parser.add_argument("--round-pause-seconds", type=float, default=0.0)
+    parser.add_argument("--progress-every-seconds", type=float, default=60.0)
     args = parser.parse_args()
+
+    def print_progress(progress: dict[str, Any]) -> None:
+        print(json.dumps(progress, sort_keys=True), file=sys.stderr, flush=True)
+
     report = asyncio.run(
         run_seller_harness(
             concurrency=args.concurrency,
             rounds=args.rounds,
             duration_seconds=args.duration_seconds,
             seed=args.seed,
+            ledger_path=args.ledger_path,
+            round_pause_seconds=args.round_pause_seconds,
+            progress_every_seconds=args.progress_every_seconds,
+            on_progress=print_progress,
         )
     )
     print(json.dumps(report, indent=2, sort_keys=True))
