@@ -15,6 +15,7 @@ def test_settings_defaults_are_concrete_values(monkeypatch) -> None:
         "SHAREDNET_LAST_SEQUENCE",
         "SHAREDNET_AGENT_NAME",
         "SHAREDNET_RUNTIME_KIND",
+        "OPERATION_JOURNAL_PATH",
         "LEDGER_PATH",
     ):
         monkeypatch.delenv(name, raising=False)
@@ -25,3 +26,4 @@ def test_settings_defaults_are_concrete_values(monkeypatch) -> None:
     assert settings.sharednet_base_url == "https://www.sharednet.ai"
     assert settings.sharednet_last_sequence == 0
     assert settings.sharednet_runtime_kind == "codex"
+    assert settings.operation_journal_path == "./outbound-operations.sqlite3"

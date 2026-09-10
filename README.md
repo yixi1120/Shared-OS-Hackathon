@@ -20,6 +20,9 @@ tested end to end without a paid model key.
   Arena run, service, and plan position so a resumed node cannot double-pay.
 - Reuses stable keys when retrying feedback, ranking, and purchases after an ambiguous
   timeout, preventing a lost acknowledgement from duplicating external side effects.
+- Writes every outbound purchase intent to a separate SQLite operation journal before
+  contacting the Arena, then reconciles ambiguous results against the platform receipt
+  and matching buyer-debit/seller-credit ledger entries.
 
 ```mermaid
 flowchart LR
@@ -37,6 +40,34 @@ Execution scores, compliance, and pricing decisions are deterministic. Free-form
 text is an Arena compatibility output and never affects the interaction score. This keeps the Arena agent
 predictable and cheap; a language model is optional for ambiguous text analysis rather
 than required for every state transition.
+
+## Crash-safe purchase protocol
+
+Market purchases run as one LangGraph cycle per service:
+
+```text
+prepare_purchase -> execute_purchase -> record_purchase -> next purchase
+                         |
+                         +-> reconcile_purchase -> record_purchase
+```
+
+`prepare_purchase` commits a `PREPARED` operation with a stable idempotency key to the
+outbound journal. `execute_purchase` durably changes it to `SUBMITTED` before making the
+network call. If the process dies after remote payment but before the next LangGraph
+checkpoint, recovery sees the submitted journal entry and reconciles it rather than
+blindly paying again.
+
+Reconciliation prioritizes an official Arena receipt. Matching buyer debit and seller
+credit entries produce `BILATERALLY_CONFIRMED`, while mismatched entries produce
+`DISPUTED`. Bilateral confirmation is retained as evidence but is not counted as official
+credit settlement. Missing evidence stays `UNKNOWN`, and automatic repayment is blocked.
+
+For process-level durability, use both an `AsyncSqliteSaver` at `CHECKPOINT_PATH` and a
+`SqliteOperationJournal` at `OPERATION_JOURNAL_PATH`. The checkpoint stores workflow
+state; the journal closes the side-effect gap between a remote transaction and the next
+checkpoint. `persistent_arena_runner(...)` wires both stores from `Settings` and should
+be used for the real Arena process; the in-memory defaults remain convenient for unit
+tests.
 
 ## Run it
 
@@ -130,6 +161,7 @@ contract exists, seller outputs continue to report `credit_settlement=not_evalua
 - `tests/test_graph.py` — routing plus in-memory and SQLite crash-recovery tests
 - `src/sharedos_commerce_agent/api.py` — seller REST API
 - `src/sharedos_commerce_agent/ledger.py` — idempotent service-order ledger
+- `src/sharedos_commerce_agent/operation_journal.py` — durable outbound side-effect journal
 - `src/sharedos_commerce_agent/harness.py` — full offline Arena simulation
 - `src/sharedos_commerce_agent/seller_harness.py` — concurrent seller and soak simulation
 - `tests/` — unit and end-to-end coverage

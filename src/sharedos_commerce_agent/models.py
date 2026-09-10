@@ -34,6 +34,11 @@ class OrderStatus(str, Enum):
     FAILED = "failed"
 
 
+class LedgerDirection(str, Enum):
+    DEBIT = "debit"
+    CREDIT = "credit"
+
+
 class InteractionStage(str, Enum):
     TASK_CREATED = "task_created"
     REQUEST_RECEIVED = "request_received"
@@ -145,6 +150,29 @@ class TradeReceipt(BaseModel):
     status: OrderStatus = OrderStatus.ACCEPTED
     created_at: datetime = Field(default_factory=utc_now)
     metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class AccountLedgerEntry(BaseModel):
+    """One independently observable side of a transfer."""
+
+    entry_id: str
+    transfer_id: str
+    idempotency_key: str
+    account_id: str
+    counterparty_id: str
+    direction: LedgerDirection
+    amount: int = Field(ge=1, le=100)
+    status: str = "settled"
+    balance_after: int | None = Field(default=None, ge=0)
+    ledger_version: str | None = None
+
+
+class TradeReconciliation(BaseModel):
+    """Independent evidence returned after an ambiguous purchase outcome."""
+
+    platform_receipt: TradeReceipt | None = None
+    buyer_entry: AccountLedgerEntry | None = None
+    seller_entry: AccountLedgerEntry | None = None
 
 
 class InteractionEventSubmission(BaseModel):

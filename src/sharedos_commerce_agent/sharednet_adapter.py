@@ -5,7 +5,13 @@ from typing import Any, Literal
 
 import httpx
 
-from .models import RankingEntry, ServiceListing, ServiceResult, TradeReceipt
+from .models import (
+    RankingEntry,
+    ServiceListing,
+    ServiceResult,
+    TradeReceipt,
+    TradeReconciliation,
+)
 
 
 class SharedNetProtocolError(RuntimeError):
@@ -338,6 +344,7 @@ class SharedNetRoutes:
     critique: str
     ranking: str
     buy: str
+    reconcile: str | None = None
 
 
 class HttpArenaClient:
@@ -420,3 +427,19 @@ class HttpArenaClient:
         )
         response.raise_for_status()
         return TradeReceipt.model_validate(response.json())
+
+    async def reconcile_trade(
+        self, listing: ServiceListing, *, idempotency_key: str
+    ) -> TradeReconciliation:
+        if self.routes.reconcile is None:
+            return TradeReconciliation()
+        path = self.routes.reconcile.format(service_id=listing.service_id)
+        response = await self.client.get(
+            path,
+            params={
+                "service_id": listing.service_id,
+                "idempotency_key": idempotency_key,
+            },
+        )
+        response.raise_for_status()
+        return TradeReconciliation.model_validate(response.json())

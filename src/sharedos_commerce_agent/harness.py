@@ -7,11 +7,14 @@ from typing import Any
 
 from .graph import build_arena_graph
 from .models import (
+    AccountLedgerEntry,
+    LedgerDirection,
     OrderStatus,
     RankingEntry,
     ServiceListing,
     ServiceResult,
     TradeReceipt,
+    TradeReconciliation,
 )
 
 
@@ -73,6 +76,9 @@ class ArenaScenario:
     critique_ack_timeouts_after_success: set[str] = field(default_factory=set)
     ranking_submission_fails: bool = False
     ranking_ack_timeout_after_success: bool = False
+    hide_platform_receipts: set[str] = field(default_factory=set)
+    bilateral_confirmation_services: set[str] = field(default_factory=set)
+    mismatched_bilateral_services: set[str] = field(default_factory=set)
     expected_valid: bool = True
     expected_violation_fragments: tuple[str, ...] = ()
 
@@ -86,6 +92,7 @@ class MockArenaClient:
     submitted_rankings: list[RankingEntry] = field(default_factory=list)
     purchases: list[TradeReceipt] = field(default_factory=list)
     purchases_by_key: dict[str, TradeReceipt] = field(default_factory=dict)
+    purchase_attempts: list[str] = field(default_factory=list)
     posted_critique_keys: set[str] = field(default_factory=set)
     ranking_keys: set[str] = field(default_factory=set)
     acknowledgement_timeouts: set[str] = field(default_factory=set)
@@ -151,6 +158,7 @@ class MockArenaClient:
     async def buy(
         self, listing: ServiceListing, *, idempotency_key: str
     ) -> TradeReceipt:
+        self.purchase_attempts.append(idempotency_key)
         if idempotency_key in self.purchases_by_key:
             return self.purchases_by_key[idempotency_key]
         if listing.service_id in self.scenario.buy_timeouts:
@@ -182,6 +190,50 @@ class MockArenaClient:
             self.acknowledgement_timeouts.add(idempotency_key)
             raise TimeoutError("synthetic acknowledgement loss after purchase")
         return receipt
+
+    async def reconcile_trade(
+        self, listing: ServiceListing, *, idempotency_key: str
+    ) -> TradeReconciliation:
+        receipt = self.purchases_by_key.get(idempotency_key)
+        if receipt is None:
+            return TradeReconciliation()
+        if listing.service_id not in self.scenario.hide_platform_receipts:
+            return TradeReconciliation(platform_receipt=receipt)
+        if listing.service_id not in {
+            *self.scenario.bilateral_confirmation_services,
+            *self.scenario.mismatched_bilateral_services,
+        }:
+            return TradeReconciliation()
+
+        seller_amount = receipt.amount
+        if listing.service_id in self.scenario.mismatched_bilateral_services:
+            seller_amount += 1
+        buyer_entry = AccountLedgerEntry(
+            entry_id=f"debit:{receipt.trade_id}",
+            transfer_id=receipt.trade_id,
+            idempotency_key=idempotency_key,
+            account_id=receipt.buyer_id,
+            counterparty_id=receipt.seller_id,
+            direction=LedgerDirection.DEBIT,
+            amount=receipt.amount,
+            balance_after=100 - receipt.amount,
+            ledger_version="buyer-v2",
+        )
+        seller_entry = AccountLedgerEntry(
+            entry_id=f"credit:{receipt.trade_id}",
+            transfer_id=receipt.trade_id,
+            idempotency_key=idempotency_key,
+            account_id=receipt.seller_id,
+            counterparty_id=receipt.buyer_id,
+            direction=LedgerDirection.CREDIT,
+            amount=seller_amount,
+            balance_after=seller_amount,
+            ledger_version="seller-v2",
+        )
+        return TradeReconciliation(
+            buyer_entry=buyer_entry,
+            seller_entry=seller_entry,
+        )
 
 
 SCENARIOS = [
@@ -235,12 +287,28 @@ SCENARIOS = [
         name="purchase_api_times_out",
         buy_timeouts={"demand-forecast"},
         expected_valid=False,
-        expected_violation_fragments=("TimeoutError",),
+        expected_violation_fragments=("settlement remains unknown",),
     ),
     ArenaScenario(
         name="purchase_succeeds_but_ack_is_lost",
         buy_ack_timeouts_after_success={"demand-forecast"},
         expected_valid=True,
+    ),
+    ArenaScenario(
+        name="purchase_is_bilaterally_confirmed_without_platform_receipt",
+        buy_ack_timeouts_after_success={"demand-forecast"},
+        hide_platform_receipts={"demand-forecast"},
+        bilateral_confirmation_services={"demand-forecast"},
+        expected_valid=False,
+        expected_violation_fragments=("bilaterally confirmed",),
+    ),
+    ArenaScenario(
+        name="buyer_and_seller_ledgers_disagree",
+        buy_ack_timeouts_after_success={"demand-forecast"},
+        hide_platform_receipts={"demand-forecast"},
+        mismatched_bilateral_services={"demand-forecast"},
+        expected_valid=False,
+        expected_violation_fragments=("reconciliation disputed",),
     ),
     ArenaScenario(
         name="duplicate_receipts",

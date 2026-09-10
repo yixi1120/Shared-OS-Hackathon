@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from typing import Protocol
 from uuid import uuid4
 
 from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
+from .config import Settings
 from .models import (
     ArenaProgress,
     ArenaReport,
@@ -12,7 +16,13 @@ from .models import (
     RankingEntry,
     ServiceListing,
     ServiceResult,
+    TradeReconciliation,
     TradeReceipt,
+)
+from .operation_journal import (
+    InMemoryOperationJournal,
+    OperationJournal,
+    SqliteOperationJournal,
 )
 from .strategy import CritiqueStrategy, MarketStrategy
 
@@ -36,6 +46,10 @@ class ArenaClient(Protocol):
         self, listing: ServiceListing, *, idempotency_key: str
     ) -> TradeReceipt: ...
 
+    async def reconcile_trade(
+        self, listing: ServiceListing, *, idempotency_key: str
+    ) -> TradeReconciliation: ...
+
 
 class ArenaRunner:
     def __init__(
@@ -45,12 +59,14 @@ class ArenaRunner:
         critique_strategy: CritiqueStrategy | None = None,
         market_strategy: MarketStrategy | None = None,
         checkpointer=None,
+        operation_journal: OperationJournal | None = None,
         max_concurrent_evaluations: int = 3,
     ) -> None:
         self.client = client
         self.critique_strategy = critique_strategy or CritiqueStrategy()
         self.market_strategy = market_strategy or MarketStrategy()
         self.checkpointer = checkpointer or InMemorySaver()
+        self.operation_journal = operation_journal or InMemoryOperationJournal()
         self.max_concurrent_evaluations = max_concurrent_evaluations
 
     async def run(self, agent_id: str) -> ArenaReport:
@@ -72,6 +88,7 @@ class ArenaRunner:
             critique_strategy=self.critique_strategy,
             market_strategy=self.market_strategy,
             checkpointer=self.checkpointer,
+            operation_journal=self.operation_journal,
             max_concurrent_evaluations=self.max_concurrent_evaluations,
         )
         active_run_id = run_id or str(uuid4())
@@ -96,6 +113,7 @@ class ArenaRunner:
             critique_strategy=self.critique_strategy,
             market_strategy=self.market_strategy,
             checkpointer=self.checkpointer,
+            operation_journal=self.operation_journal,
             max_concurrent_evaluations=self.max_concurrent_evaluations,
         )
         config = {"configurable": {"thread_id": run_id}}
@@ -103,3 +121,30 @@ class ArenaRunner:
         if "report" not in state:
             raise RuntimeError(f"Arena run {run_id} did not reach its audit report")
         return state["report"]
+
+
+@asynccontextmanager
+async def persistent_arena_runner(
+    client: ArenaClient,
+    *,
+    settings: Settings | None = None,
+    critique_strategy: CritiqueStrategy | None = None,
+    market_strategy: MarketStrategy | None = None,
+    max_concurrent_evaluations: int = 3,
+) -> AsyncIterator[ArenaRunner]:
+    """Create a runner with both workflow and side-effect durability enabled."""
+
+    active_settings = settings or Settings.from_env()
+    async with AsyncSqliteSaver.from_conn_string(
+        active_settings.checkpoint_path
+    ) as checkpointer:
+        yield ArenaRunner(
+            client,
+            critique_strategy=critique_strategy,
+            market_strategy=market_strategy,
+            checkpointer=checkpointer,
+            operation_journal=SqliteOperationJournal(
+                active_settings.operation_journal_path
+            ),
+            max_concurrent_evaluations=max_concurrent_evaluations,
+        )

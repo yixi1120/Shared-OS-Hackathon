@@ -16,7 +16,7 @@ async def test_fault_injection_suite_matches_expectations() -> None:
     result = await run_suite()
 
     assert result["suite_passed"] is True
-    assert len(result["scenarios"]) == 12
+    assert len(result["scenarios"]) == 14
     assert {item["valid"] for item in result["scenarios"]} == {True, False}
 
     ack_loss_scenarios = [

@@ -25,6 +25,7 @@ class Settings:
     seller_api_token: str | None = None
     ledger_path: str = "./commerce.sqlite3"
     checkpoint_path: str = "./checkpoints.sqlite3"
+    operation_journal_path: str = "./outbound-operations.sqlite3"
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -70,5 +71,8 @@ class Settings:
             ledger_path=os.getenv("LEDGER_PATH", defaults.ledger_path),
             checkpoint_path=os.getenv(
                 "CHECKPOINT_PATH", defaults.checkpoint_path
+            ),
+            operation_journal_path=os.getenv(
+                "OPERATION_JOURNAL_PATH", defaults.operation_journal_path
             ),
         )

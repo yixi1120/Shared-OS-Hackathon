@@ -12,12 +12,20 @@ from .models import (
     ArenaProgress,
     ArenaReport,
     ArenaRunMode,
+    LedgerDirection,
     OrderStatus,
     PurchaseIntent,
     RankingEntry,
     RoundName,
     ServiceListing,
     ServiceResult,
+    TradeReceipt,
+    TradeReconciliation,
+)
+from .operation_journal import (
+    InMemoryOperationJournal,
+    OperationJournal,
+    OperationStatus,
 )
 from .strategy import ComplianceError, CritiqueStrategy, MarketStrategy
 
@@ -35,6 +43,9 @@ class ArenaGraphState(TypedDict, total=False):
     progress: ArenaProgress
     rankings: list[RankingEntry]
     purchase_plan: list[PurchaseIntent]
+    purchase_index: int
+    pending_purchase_key: str
+    pending_service_id: str
     violations: Annotated[list[str], operator.add]
     report: ArenaReport
     compliant: bool
@@ -46,6 +57,7 @@ def build_arena_graph(
     critique_strategy: CritiqueStrategy | None = None,
     market_strategy: MarketStrategy | None = None,
     checkpointer=None,
+    operation_journal: OperationJournal | None = None,
     max_concurrent_evaluations: int = 3,
 ):
     """Compile the Arena workflow with business-relevant, testable nodes."""
@@ -55,6 +67,7 @@ def build_arena_graph(
 
     critique_policy = critique_strategy or CritiqueStrategy()
     market_policy = market_strategy or MarketStrategy()
+    outbound_journal = operation_journal or InMemoryOperationJournal()
 
     async def retry_idempotent(operation: Callable[[], Awaitable[object]]) -> object:
         """Retry once; the caller must reuse the same idempotency key."""
@@ -211,57 +224,278 @@ def build_arena_graph(
                 "purchase_plan": [],
                 "violations": [str(exc)],
             }
-        return {"phase": "purchase", "purchase_plan": plan}
+        return {
+            "phase": "prepare_purchase",
+            "purchase_plan": plan,
+            "purchase_index": 0,
+        }
 
-    def after_market_plan(state: ArenaGraphState) -> Literal["purchase", "audit"]:
-        return "purchase" if state.get("purchase_plan") else "audit"
+    def after_market_plan(
+        state: ArenaGraphState,
+    ) -> Literal["prepare_purchase", "audit"]:
+        return "prepare_purchase" if state.get("purchase_plan") else "audit"
 
     def after_ranking(state: ArenaGraphState) -> Literal["plan_market", "audit"]:
         if state["run_mode"] is ArenaRunMode.CRITIQUE:
             return "audit"
         return "plan_market"
 
-    async def purchase(state: ArenaGraphState) -> ArenaGraphState:
-        progress = state["progress"].model_copy(deep=True)
-        listings = {item.service_id: item for item in state["listings"]}
-        violations: list[str] = []
-        seen_trade_ids = {receipt.trade_id for receipt in progress.receipts}
+    def receipt_violation(
+        receipt: TradeReceipt,
+        intent: PurchaseIntent,
+    ) -> str | None:
+        if receipt.status not in {OrderStatus.PAID, OrderStatus.DELIVERED}:
+            return f"Purchase {receipt.trade_id} did not settle"
+        if receipt.amount != intent.price:
+            return (
+                f"Purchase {receipt.trade_id} settled at unexpected price "
+                f"{receipt.amount}"
+            )
+        if receipt.seller_id != intent.seller_id:
+            return f"Purchase {receipt.trade_id} settled with an unexpected seller"
+        if receipt.service_id != intent.service_id:
+            return f"Purchase {receipt.trade_id} settled for an unexpected service"
+        return None
 
-        for index, intent in enumerate(state["purchase_plan"]):
-            idempotency_key = f"{state['run_id']}:purchase:{intent.service_id}:{index}"
-            try:
-                receipt = await retry_idempotent(
-                    lambda: client.buy(
-                        listings[intent.service_id],
-                        idempotency_key=idempotency_key,
-                    )
+    def bilateral_entries_match(
+        evidence: TradeReconciliation,
+        intent: PurchaseIntent,
+        idempotency_key: str,
+        buyer_id: str,
+    ) -> bool:
+        buyer = evidence.buyer_entry
+        seller = evidence.seller_entry
+        if buyer is None or seller is None:
+            return False
+        return (
+            buyer.transfer_id == seller.transfer_id
+            and buyer.idempotency_key == idempotency_key
+            and seller.idempotency_key == idempotency_key
+            and buyer.direction is LedgerDirection.DEBIT
+            and seller.direction is LedgerDirection.CREDIT
+            and buyer.account_id == buyer_id
+            and buyer.counterparty_id == intent.seller_id
+            and seller.account_id == intent.seller_id
+            and seller.counterparty_id == buyer_id
+            and buyer.amount == intent.price
+            and seller.amount == intent.price
+            and buyer.status == "settled"
+            and seller.status == "settled"
+        )
+
+    async def prepare_purchase(state: ArenaGraphState) -> ArenaGraphState:
+        index = state.get("purchase_index", 0)
+        if index >= len(state["purchase_plan"]):
+            return {"phase": "audit"}
+        intent = state["purchase_plan"][index]
+        idempotency_key = (
+            f"{state['run_id']}:purchase:{intent.service_id}:{index}"
+        )
+        operation, created = outbound_journal.prepare(
+            idempotency_key=idempotency_key,
+            buyer_id=state["agent_id"],
+            seller_id=intent.seller_id,
+            service_id=intent.service_id,
+            amount=intent.price,
+        )
+        if created:
+            phase = "execute_purchase"
+        elif operation.status is OperationStatus.PREPARED:
+            # A PREPARED record discovered during replay may have been submitted just
+            # before the process died, so recovery must reconcile before another send.
+            phase = "reconcile_purchase"
+        elif operation.status in {
+            OperationStatus.SUBMITTED,
+            OperationStatus.UNKNOWN,
+        }:
+            phase = "reconcile_purchase"
+        else:
+            phase = "record_purchase"
+        return {
+            "phase": phase,
+            "pending_purchase_key": idempotency_key,
+            "pending_service_id": intent.service_id,
+        }
+
+    def after_purchase_preparation(
+        state: ArenaGraphState,
+    ) -> Literal["execute_purchase", "reconcile_purchase", "record_purchase", "audit"]:
+        return state["phase"]  # type: ignore[return-value]
+
+    async def execute_purchase(state: ArenaGraphState) -> ArenaGraphState:
+        index = state["purchase_index"]
+        intent = state["purchase_plan"][index]
+        listings = {item.service_id: item for item in state["listings"]}
+        key = state["pending_purchase_key"]
+        operation = outbound_journal.get(key)
+        if operation is None:
+            raise RuntimeError("prepared outbound operation disappeared")
+        if operation.status is not OperationStatus.PREPARED:
+            return {"phase": "reconcile_purchase"}
+
+        # This durable transition is committed before the external side effect. If the
+        # process dies after payment but before the graph checkpoint, recovery sees
+        # SUBMITTED and reconciles instead of blindly paying again.
+        outbound_journal.transition(key, OperationStatus.SUBMITTED)
+        try:
+            receipt = await client.buy(
+                listings[intent.service_id], idempotency_key=key
+            )
+        except (TimeoutError, ConnectionError) as exc:
+            outbound_journal.transition(
+                key,
+                OperationStatus.UNKNOWN,
+                reason=f"ambiguous transport failure: {type(exc).__name__}",
+            )
+            return {"phase": "reconcile_purchase"}
+        except Exception as exc:
+            outbound_journal.transition(
+                key,
+                OperationStatus.FAILED,
+                reason=type(exc).__name__,
+            )
+            return {"phase": "record_purchase"}
+
+        violation = receipt_violation(receipt, intent)
+        if violation is not None:
+            outbound_journal.transition(
+                key,
+                OperationStatus.DISPUTED,
+                receipt=receipt,
+                reason=violation,
+            )
+        else:
+            outbound_journal.transition(
+                key,
+                OperationStatus.SETTLED,
+                receipt=receipt,
+            )
+        return {"phase": "record_purchase"}
+
+    def after_purchase_execution(
+        state: ArenaGraphState,
+    ) -> Literal["reconcile_purchase", "record_purchase"]:
+        return state["phase"]  # type: ignore[return-value]
+
+    async def reconcile_purchase(state: ArenaGraphState) -> ArenaGraphState:
+        index = state["purchase_index"]
+        intent = state["purchase_plan"][index]
+        listings = {item.service_id: item for item in state["listings"]}
+        key = state["pending_purchase_key"]
+        try:
+            evidence = await client.reconcile_trade(
+                listings[intent.service_id], idempotency_key=key
+            )
+        except Exception as exc:
+            outbound_journal.transition(
+                key,
+                OperationStatus.UNKNOWN,
+                reason=f"reconciliation unavailable: {type(exc).__name__}",
+            )
+            return {"phase": "record_purchase"}
+
+        if evidence.platform_receipt is not None:
+            violation = receipt_violation(evidence.platform_receipt, intent)
+            if violation is None:
+                outbound_journal.transition(
+                    key,
+                    OperationStatus.SETTLED,
+                    receipt=evidence.platform_receipt,
+                    evidence=evidence,
                 )
-            except Exception as exc:
-                violations.append(
-                    f"Purchase of {intent.service_id} failed: {type(exc).__name__}"
+            else:
+                outbound_journal.transition(
+                    key,
+                    OperationStatus.DISPUTED,
+                    receipt=evidence.platform_receipt,
+                    evidence=evidence,
+                    reason=violation,
                 )
-                continue
-            if receipt.status not in {OrderStatus.PAID, OrderStatus.DELIVERED}:
-                violations.append(f"Purchase {receipt.trade_id} did not settle")
-                continue
-            if receipt.amount != intent.price:
-                violations.append(
-                    f"Purchase {receipt.trade_id} settled at unexpected price {receipt.amount}"
+        elif evidence.buyer_entry is not None and evidence.seller_entry is not None:
+            if bilateral_entries_match(
+                evidence, intent, key, state["agent_id"]
+            ):
+                outbound_journal.transition(
+                    key,
+                    OperationStatus.BILATERALLY_CONFIRMED,
+                    evidence=evidence,
+                    reason="matching buyer debit and seller credit entries",
                 )
-                continue
+            else:
+                outbound_journal.transition(
+                    key,
+                    OperationStatus.DISPUTED,
+                    evidence=evidence,
+                    reason="buyer and seller ledger entries disagree",
+                )
+        else:
+            outbound_journal.transition(
+                key,
+                OperationStatus.UNKNOWN,
+                evidence=evidence,
+                reason="no authoritative receipt or matching bilateral entries",
+            )
+        return {"phase": "record_purchase"}
+
+    async def record_purchase(state: ArenaGraphState) -> ArenaGraphState:
+        progress = state["progress"].model_copy(deep=True)
+        index = state["purchase_index"]
+        intent = state["purchase_plan"][index]
+        key = state["pending_purchase_key"]
+        operation = outbound_journal.get(key)
+        if operation is None:
+            raise RuntimeError("outbound operation disappeared before recording")
+
+        violations: list[str] = []
+        if operation.status is OperationStatus.SETTLED and operation.receipt is not None:
+            receipt = operation.receipt
+            seen_trade_ids = {item.trade_id for item in progress.receipts}
             if receipt.trade_id in seen_trade_ids:
                 violations.append(f"Duplicate receipt detected: {receipt.trade_id}")
-                continue
-            seen_trade_ids.add(receipt.trade_id)
-            progress.receipts.append(receipt)
-            progress.spent_credits += receipt.amount
-            progress.purchased_products.add(receipt.seller_id)
+            else:
+                progress.receipts.append(receipt)
+                progress.spent_credits += receipt.amount
+                progress.purchased_products.add(receipt.seller_id)
+        elif operation.status is OperationStatus.BILATERALLY_CONFIRMED:
+            violations.append(
+                f"Purchase of {intent.service_id} was bilaterally confirmed but "
+                "lacks an official Arena settlement receipt"
+            )
+        elif operation.status is OperationStatus.DISPUTED:
+            violations.append(
+                f"Purchase of {intent.service_id} reconciliation disputed: "
+                f"{operation.reason or 'evidence mismatch'}"
+            )
+        elif operation.status is OperationStatus.FAILED:
+            violations.append(
+                f"Purchase of {intent.service_id} failed: "
+                f"{operation.reason or 'unknown error'}"
+            )
+        else:
+            violations.append(
+                f"Purchase of {intent.service_id} settlement remains unknown; "
+                "automatic repayment is blocked"
+            )
 
+        next_index = index + 1
+        phase = (
+            "prepare_purchase"
+            if next_index < len(state["purchase_plan"])
+            else "audit"
+        )
         return {
-            "phase": "audit",
+            "phase": phase,
             "progress": progress,
+            "purchase_index": next_index,
+            "pending_purchase_key": "",
+            "pending_service_id": "",
             "violations": violations,
         }
+
+    def after_purchase_recording(
+        state: ArenaGraphState,
+    ) -> Literal["prepare_purchase", "audit"]:
+        return state["phase"]  # type: ignore[return-value]
 
     async def audit(state: ArenaGraphState) -> ArenaGraphState:
         progress = state["progress"].model_copy(deep=True)
@@ -306,7 +540,10 @@ def build_arena_graph(
     graph.add_node("publish_required_feedback", publish_required_feedback)
     graph.add_node("rank", rank)
     graph.add_node("plan_market", plan_market)
-    graph.add_node("purchase", purchase)
+    graph.add_node("prepare_purchase", prepare_purchase)
+    graph.add_node("execute_purchase", execute_purchase)
+    graph.add_node("reconcile_purchase", reconcile_purchase)
+    graph.add_node("record_purchase", record_purchase)
     graph.add_node("audit", audit)
     graph.add_edge(START, "prepare")
     graph.add_edge("prepare", "discover")
@@ -315,6 +552,9 @@ def build_arena_graph(
     graph.add_edge("publish_required_feedback", "rank")
     graph.add_conditional_edges("rank", after_ranking)
     graph.add_conditional_edges("plan_market", after_market_plan)
-    graph.add_edge("purchase", "audit")
+    graph.add_conditional_edges("prepare_purchase", after_purchase_preparation)
+    graph.add_conditional_edges("execute_purchase", after_purchase_execution)
+    graph.add_edge("reconcile_purchase", "record_purchase")
+    graph.add_conditional_edges("record_purchase", after_purchase_recording)
     graph.add_edge("audit", END)
     return graph.compile(checkpointer=checkpointer)
