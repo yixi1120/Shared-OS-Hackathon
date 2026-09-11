@@ -68,6 +68,14 @@ class ServiceListing(BaseModel):
     evidence: list[str] = Field(default_factory=list)
     reachable: bool = True
     reputation: float = Field(default=0.5, ge=0, le=1)
+    reputation_status: str | None = None
+    input_schema_id: str | None = None
+    output_schema_id: str | None = None
+    contract_endpoint: str | None = None
+    pricing_policy_version: str | None = None
+    floor_price: int | None = Field(default=None, ge=1, le=100)
+    delivery_requirement_seconds: int | None = Field(default=None, ge=1)
+    limitations: list[str] = Field(default_factory=list)
 
 
 class ServiceResult(BaseModel):

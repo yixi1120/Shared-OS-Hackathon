@@ -24,6 +24,7 @@ from .operation_journal import (
     OperationJournal,
     SqliteOperationJournal,
 )
+from .sales import SalesPolicy, SalesReply
 from .strategy import CritiqueStrategy, MarketStrategy
 
 
@@ -60,6 +61,7 @@ class ArenaRunner:
         market_strategy: MarketStrategy | None = None,
         checkpointer=None,
         operation_journal: OperationJournal | None = None,
+        sales_policy: SalesPolicy | None = None,
         max_concurrent_evaluations: int = 3,
     ) -> None:
         self.client = client
@@ -67,7 +69,14 @@ class ArenaRunner:
         self.market_strategy = market_strategy or MarketStrategy()
         self.checkpointer = checkpointer or InMemorySaver()
         self.operation_journal = operation_journal or InMemoryOperationJournal()
+        self.sales_policy = sales_policy or SalesPolicy()
         self.max_concurrent_evaluations = max_concurrent_evaluations
+
+    def product_introduction(self) -> str:
+        return self.sales_policy.introduction
+
+    def answer_buyer(self, message: str) -> SalesReply:
+        return self.sales_policy.respond(message)
 
     async def run(self, agent_id: str) -> ArenaReport:
         return await self.run_round(agent_id, ArenaRunMode.FULL_DRY_RUN)
@@ -130,6 +139,7 @@ async def persistent_arena_runner(
     settings: Settings | None = None,
     critique_strategy: CritiqueStrategy | None = None,
     market_strategy: MarketStrategy | None = None,
+    sales_policy: SalesPolicy | None = None,
     max_concurrent_evaluations: int = 3,
 ) -> AsyncIterator[ArenaRunner]:
     """Create a runner with both workflow and side-effect durability enabled."""
@@ -146,5 +156,6 @@ async def persistent_arena_runner(
             operation_journal=SqliteOperationJournal(
                 active_settings.operation_journal_path
             ),
+            sales_policy=sales_policy,
             max_concurrent_evaluations=max_concurrent_evaluations,
         )

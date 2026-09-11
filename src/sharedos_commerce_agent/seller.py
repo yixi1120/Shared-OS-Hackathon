@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+from importlib.resources import files
 from typing import Any
 
 from .ledger import Ledger
@@ -23,34 +25,31 @@ from .telemetry import evaluate_interaction_trace
 SELLER_ID = "agent-commerce-network"
 
 
-CATALOG = [
-    ServiceListing(
-        service_id="a2a-interaction-trace",
-        seller_id=SELLER_ID,
-        name="A2A Interaction Trace",
-        description=(
-            "Evaluates structured A2A task lifecycle evidence and reports execution quality, "
-            "provenance confidence, and machine-readable risk flags without claiming payment."
-        ),
-        price=DEFAULT_PRICING_POLICY.base_price,
-        tags=["a2a", "task", "telemetry", "reputation", "verification"],
-        evidence=["task state", "artifact delivery", "latency", "schema validity"],
-        reputation=0.8,
-    ),
-    ServiceListing(
-        service_id="a2a-interaction-risk-report",
-        seller_id=SELLER_ID,
-        name="A2A Interaction Risk Report",
-        description=(
-            "Explains objective risk flags in an A2A interaction trace and separates "
-            "execution quality from evidence confidence."
-        ),
-        price=DEFAULT_PRICING_POLICY.base_price,
-        tags=["a2a", "task", "risk", "evidence"],
-        evidence=["machine-readable flags", "score breakdown", "sample-size disclosure"],
-        reputation=0.78,
-    ),
-]
+def _load_catalog() -> list[ServiceListing]:
+    resource = files("sharedos_commerce_agent.resources").joinpath(
+        "product_catalog_v1.json"
+    )
+    payload = json.loads(resource.read_text(encoding="utf-8"))
+    return [
+        ServiceListing(
+            **item,
+            seller_id=SELLER_ID,
+            price=DEFAULT_PRICING_POLICY.base_price,
+            pricing_policy_version=DEFAULT_PRICING_POLICY.version,
+            floor_price=DEFAULT_PRICING_POLICY.floor_price,
+        )
+        for item in payload["services"]
+    ]
+
+
+CATALOG = _load_catalog()
+
+
+def interaction_contract() -> dict[str, Any]:
+    resource = files("sharedos_commerce_agent.resources").joinpath(
+        "interaction_contract_v1.json"
+    )
+    return json.loads(resource.read_text(encoding="utf-8"))
 
 
 class SellerService:
@@ -59,7 +58,16 @@ class SellerService:
         self.pricing = pricing or DEFAULT_PRICING_POLICY
 
     def catalog(self) -> list[ServiceListing]:
-        return [item.model_copy(update={"price": self.pricing.base_price}) for item in CATALOG]
+        return [
+            item.model_copy(
+                update={
+                    "price": self.pricing.base_price,
+                    "pricing_policy_version": self.pricing.version,
+                    "floor_price": self.pricing.floor_price,
+                }
+            )
+            for item in CATALOG
+        ]
 
     def quote(self, request: QuoteRequest) -> Quote:
         first_purchase = not self.ledger.has_buyer(request.buyer_id)

@@ -90,6 +90,35 @@ def test_quote_negotiate_order_and_delivery() -> None:
     assert stored.json()["status"] == "delivered"
 
 
+def test_catalog_exposes_machine_readable_contract_and_current_pricing() -> None:
+    client = TestClient(create_app(Settings(ledger_path=":memory:")))
+
+    catalog = client.get("/v1/catalog").json()
+    assert {item["price"] for item in catalog} == {6}
+    assert {item["floor_price"] for item in catalog} == {5}
+    assert {item["pricing_policy_version"] for item in catalog} == {
+        "arena-fixed-v1"
+    }
+    assert all(
+        item["input_schema_id"] == "urn:a2a:interaction-input:v1"
+        for item in catalog
+    )
+    assert all(
+        item["contract_endpoint"] == "/v1/contracts/interaction-v1"
+        for item in catalog
+    )
+    assert all(item["limitations"] for item in catalog)
+    assert all(
+        item["reputation_status"] == "unrated-placeholder-not-a-product-output"
+        for item in catalog
+    )
+
+    contract = client.get("/v1/contracts/interaction-v1").json()
+    assert set(contract) >= {"input", "trace_report", "risk_report"}
+    settlement = contract["trace_report"]["properties"]["credit_settlement"]
+    assert settlement["const"] == "not_evaluated"
+
+
 def test_configured_bearer_token_protects_non_discovery_endpoints() -> None:
     client = TestClient(
         create_app(Settings(ledger_path=":memory:", seller_api_token="secret-token"))

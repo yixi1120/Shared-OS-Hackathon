@@ -386,6 +386,7 @@ report
 - [x] Seller 并发 Harness
 - [x] 两小时 Soak Harness（32,272 笔全部 delivered；详见 [SOAK_TEST_REPORT](SOAK_TEST_REPORT.md)）
 - [x] Persona 与多随机种子实验
+- [x] 冠盛产品目录、20秒介绍与十类销售答辩的机器可读接入
 - [ ] 真实 SharedNet contract test
 
 ---

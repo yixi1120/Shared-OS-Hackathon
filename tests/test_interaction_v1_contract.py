@@ -1,4 +1,5 @@
 import json
+from importlib.resources import files
 from pathlib import Path
 
 import pytest
@@ -62,6 +63,16 @@ def test_frozen_schemas_and_forbidden_scoring_inputs():
     assert evaluate_interaction_trace(events).model_dump(mode='json') == case['expected']
 
 
+def test_packaged_contract_matches_reviewable_document_copy():
+    documented = json.loads((Path(__file__).parents[1] / 'docs/siqi/schemas.json').read_text())
+    packaged = json.loads(
+        files('sharedos_commerce_agent.resources')
+        .joinpath('interaction_contract_v1.json')
+        .read_text(encoding='utf-8')
+    )
+    assert packaged == documented
+
+
 @pytest.mark.parametrize('events', [[], [{'task_id':'t'}]])
 def test_invalid_structure_is_rejected(events):
     from pydantic import ValidationError
@@ -89,4 +100,3 @@ def test_wire_schema_enforces_required_fields_and_unevaluated_settlement():
         'flags': interpret_risks(CASES[0]['expected']['risk_flags']),
     }}
     validate(risk, schemas['risk_report'])
-

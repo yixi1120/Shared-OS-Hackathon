@@ -1,0 +1,42 @@
+{
+  "catalog_version": "arena-v1",
+  "product_name": "A2A Interaction Intelligence",
+  "services": [
+    {
+      "service_id": "a2a-interaction-trace",
+      "name": "A2A Interaction Trace",
+      "description": "Evaluate one A2A task from structured lifecycle events. Receive completion, delivery, ordering, reported latency, schema validity, an execution score, evidence confidence, and risk flags.",
+      "tags": ["a2a", "task", "telemetry", "evidence"],
+      "evidence": ["task state", "artifact delivery", "latency", "schema validity", "evidence references"],
+      "reputation": 0.5,
+      "reputation_status": "unrated-placeholder-not-a-product-output",
+      "input_schema_id": "urn:a2a:interaction-input:v1",
+      "output_schema_id": "urn:a2a:interaction-report:v1",
+      "contract_endpoint": "/v1/contracts/interaction-v1",
+      "delivery_requirement_seconds": 300,
+      "limitations": [
+        "Caller-submitted events remain self-reported.",
+        "The report does not verify credit settlement.",
+        "A single trace does not establish global reputation."
+      ]
+    },
+    {
+      "service_id": "a2a-interaction-risk-report",
+      "name": "A2A Interaction Risk Report",
+      "description": "Return the same task metrics and risk flags as Interaction Trace, with fixed bilingual explanations of each triggered flag and the report scope.",
+      "tags": ["a2a", "task", "risk", "evidence"],
+      "evidence": ["machine-readable flags", "bilingual risk explanations", "evidence references"],
+      "reputation": 0.5,
+      "reputation_status": "unrated-placeholder-not-a-product-output",
+      "input_schema_id": "urn:a2a:interaction-input:v1",
+      "output_schema_id": "urn:a2a:risk-report:v1",
+      "contract_endpoint": "/v1/contracts/interaction-v1",
+      "delivery_requirement_seconds": 300,
+      "limitations": [
+        "Risk Report uses the same execution metrics as Interaction Trace.",
+        "Paying for Risk Report does not increase evidence confidence.",
+        "The report does not verify credit settlement or establish global reputation."
+      ]
+    }
+  ]
+}

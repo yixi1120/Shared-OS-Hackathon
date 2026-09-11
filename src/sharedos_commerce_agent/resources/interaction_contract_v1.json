@@ -1,0 +1,530 @@
+{
+  "input": {
+    "$defs": {
+      "InteractionEventSubmission": {
+        "description": "Untrusted event payload accepted from an external caller.",
+        "properties": {
+          "task_id": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Task Id",
+            "type": "string"
+          },
+          "subject_agent_id": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Subject Agent Id",
+            "type": "string"
+          },
+          "stage": {
+            "$ref": "#/$defs/InteractionStage"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "schema_valid": {
+            "default": true,
+            "title": "Schema Valid",
+            "type": "boolean"
+          },
+          "evidence_id": {
+            "anyOf": [
+              {
+                "maxLength": 256,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Evidence Id"
+          },
+          "request_hash": {
+            "anyOf": [
+              {
+                "maxLength": 256,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Request Hash"
+          },
+          "artifact_hash": {
+            "anyOf": [
+              {
+                "maxLength": 256,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Artifact Hash"
+          }
+        },
+        "required": [
+          "task_id",
+          "subject_agent_id",
+          "stage",
+          "occurred_at"
+        ],
+        "title": "InteractionEventSubmission",
+        "type": "object"
+      },
+      "InteractionStage": {
+        "enum": [
+          "task_created",
+          "request_received",
+          "quote_declared",
+          "task_started",
+          "artifact_delivered",
+          "buyer_acknowledged",
+          "task_completed",
+          "task_failed",
+          "disputed"
+        ],
+        "title": "InteractionStage",
+        "type": "string"
+      }
+    },
+    "description": "Bounded, content-minimized input accepted by both trace services.",
+    "properties": {
+      "events": {
+        "items": {
+          "$ref": "#/$defs/InteractionEventSubmission"
+        },
+        "maxItems": 200,
+        "minItems": 1,
+        "title": "Events",
+        "type": "array"
+      }
+    },
+    "required": [
+      "events"
+    ],
+    "title": "InteractionTraceInput",
+    "type": "object"
+  },
+  "trace_report": {
+    "properties": {
+      "task_id": {
+        "title": "Task Id",
+        "type": "string"
+      },
+      "subject_agent_id": {
+        "title": "Subject Agent Id",
+        "type": "string"
+      },
+      "completed": {
+        "title": "Completed",
+        "type": "boolean"
+      },
+      "delivered": {
+        "title": "Delivered",
+        "type": "boolean"
+      },
+      "ordered": {
+        "title": "Ordered",
+        "type": "boolean"
+      },
+      "schema_valid_rate": {
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Schema Valid Rate",
+        "type": "number"
+      },
+      "disputed": {
+        "title": "Disputed",
+        "type": "boolean"
+      },
+      "end_to_end_latency_ms": {
+        "anyOf": [
+          {
+            "minimum": 0,
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "End To End Latency Ms"
+      },
+      "execution_score": {
+        "maximum": 100,
+        "minimum": 0,
+        "title": "Execution Score",
+        "type": "number"
+      },
+      "evidence_weight": {
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Evidence Weight",
+        "type": "number"
+      },
+      "confidence": {
+        "title": "Confidence",
+        "type": "string"
+      },
+      "reputation_eligible": {
+        "title": "Reputation Eligible",
+        "type": "boolean"
+      },
+      "credit_settlement": {
+        "default": "not_evaluated",
+        "title": "Credit Settlement",
+        "type": "string",
+        "const": "not_evaluated"
+      },
+      "provenance_counts": {
+        "additionalProperties": {
+          "type": "integer"
+        },
+        "title": "Provenance Counts",
+        "type": "object"
+      },
+      "evidence_ids": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Evidence Ids",
+        "type": "array"
+      },
+      "risk_flags": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Risk Flags",
+        "type": "array"
+      }
+    },
+    "required": [
+      "task_id",
+      "subject_agent_id",
+      "completed",
+      "delivered",
+      "ordered",
+      "schema_valid_rate",
+      "disputed",
+      "end_to_end_latency_ms",
+      "execution_score",
+      "evidence_weight",
+      "confidence",
+      "reputation_eligible",
+      "credit_settlement",
+      "provenance_counts",
+      "evidence_ids",
+      "risk_flags"
+    ],
+    "title": "InteractionTraceReport",
+    "type": "object"
+  },
+  "risk_interpretation": {
+    "type": "object",
+    "required": [
+      "meaning",
+      "not_meaning",
+      "flags"
+    ],
+    "properties": {
+      "meaning": {
+        "type": "string"
+      },
+      "not_meaning": {
+        "type": "string"
+      },
+      "flags": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "flag",
+            "zh",
+            "en"
+          ],
+          "properties": {
+            "flag": {
+              "type": "string"
+            },
+            "zh": {
+              "type": "string"
+            },
+            "en": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "trace_report_model": {
+    "properties": {
+      "task_id": {
+        "title": "Task Id",
+        "type": "string"
+      },
+      "subject_agent_id": {
+        "title": "Subject Agent Id",
+        "type": "string"
+      },
+      "completed": {
+        "title": "Completed",
+        "type": "boolean"
+      },
+      "delivered": {
+        "title": "Delivered",
+        "type": "boolean"
+      },
+      "ordered": {
+        "title": "Ordered",
+        "type": "boolean"
+      },
+      "schema_valid_rate": {
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Schema Valid Rate",
+        "type": "number"
+      },
+      "disputed": {
+        "title": "Disputed",
+        "type": "boolean"
+      },
+      "end_to_end_latency_ms": {
+        "anyOf": [
+          {
+            "minimum": 0,
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "End To End Latency Ms"
+      },
+      "execution_score": {
+        "maximum": 100,
+        "minimum": 0,
+        "title": "Execution Score",
+        "type": "number"
+      },
+      "evidence_weight": {
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Evidence Weight",
+        "type": "number"
+      },
+      "confidence": {
+        "title": "Confidence",
+        "type": "string"
+      },
+      "reputation_eligible": {
+        "title": "Reputation Eligible",
+        "type": "boolean"
+      },
+      "credit_settlement": {
+        "default": "not_evaluated",
+        "title": "Credit Settlement",
+        "type": "string"
+      },
+      "provenance_counts": {
+        "additionalProperties": {
+          "type": "integer"
+        },
+        "title": "Provenance Counts",
+        "type": "object"
+      },
+      "evidence_ids": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Evidence Ids",
+        "type": "array"
+      },
+      "risk_flags": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Risk Flags",
+        "type": "array"
+      }
+    },
+    "required": [
+      "task_id",
+      "subject_agent_id",
+      "completed",
+      "delivered",
+      "ordered",
+      "schema_valid_rate",
+      "disputed",
+      "execution_score",
+      "evidence_weight",
+      "confidence",
+      "reputation_eligible"
+    ],
+    "title": "InteractionTraceReport",
+    "type": "object"
+  },
+  "risk_report": {
+    "properties": {
+      "task_id": {
+        "title": "Task Id",
+        "type": "string"
+      },
+      "subject_agent_id": {
+        "title": "Subject Agent Id",
+        "type": "string"
+      },
+      "completed": {
+        "title": "Completed",
+        "type": "boolean"
+      },
+      "delivered": {
+        "title": "Delivered",
+        "type": "boolean"
+      },
+      "ordered": {
+        "title": "Ordered",
+        "type": "boolean"
+      },
+      "schema_valid_rate": {
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Schema Valid Rate",
+        "type": "number"
+      },
+      "disputed": {
+        "title": "Disputed",
+        "type": "boolean"
+      },
+      "end_to_end_latency_ms": {
+        "anyOf": [
+          {
+            "minimum": 0,
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "End To End Latency Ms"
+      },
+      "execution_score": {
+        "maximum": 100,
+        "minimum": 0,
+        "title": "Execution Score",
+        "type": "number"
+      },
+      "evidence_weight": {
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Evidence Weight",
+        "type": "number"
+      },
+      "confidence": {
+        "title": "Confidence",
+        "type": "string"
+      },
+      "reputation_eligible": {
+        "title": "Reputation Eligible",
+        "type": "boolean"
+      },
+      "credit_settlement": {
+        "default": "not_evaluated",
+        "title": "Credit Settlement",
+        "type": "string",
+        "const": "not_evaluated"
+      },
+      "provenance_counts": {
+        "additionalProperties": {
+          "type": "integer"
+        },
+        "title": "Provenance Counts",
+        "type": "object"
+      },
+      "evidence_ids": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Evidence Ids",
+        "type": "array"
+      },
+      "risk_flags": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Risk Flags",
+        "type": "array"
+      },
+      "interpretation": {
+        "type": "object",
+        "required": [
+          "meaning",
+          "not_meaning",
+          "flags"
+        ],
+        "properties": {
+          "meaning": {
+            "type": "string"
+          },
+          "not_meaning": {
+            "type": "string"
+          },
+          "flags": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "flag",
+                "zh",
+                "en"
+              ],
+              "properties": {
+                "flag": {
+                  "type": "string"
+                },
+                "zh": {
+                  "type": "string"
+                },
+                "en": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "required": [
+      "task_id",
+      "subject_agent_id",
+      "completed",
+      "delivered",
+      "ordered",
+      "schema_valid_rate",
+      "disputed",
+      "end_to_end_latency_ms",
+      "execution_score",
+      "evidence_weight",
+      "confidence",
+      "reputation_eligible",
+      "credit_settlement",
+      "provenance_counts",
+      "evidence_ids",
+      "risk_flags",
+      "interpretation"
+    ],
+    "title": "InteractionTraceReport",
+    "type": "object"
+  }
+}
+
+

@@ -18,7 +18,7 @@ from .models import (
     QuoteRequest,
     TradeReceipt,
 )
-from .seller import SellerService
+from .seller import SellerService, interaction_contract
 from .strategy import InsufficientBudget
 
 
@@ -81,6 +81,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def catalog() -> list[dict[str, Any]]:
         return [item.model_dump(mode="json") for item in seller.catalog()]
 
+    @app.get("/v1/contracts/interaction-v1")
+    def contract() -> dict[str, Any]:
+        return interaction_contract()
+
     @app.post(
         "/v1/quotes",
         response_model=Quote,
@@ -109,10 +113,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             raise HTTPException(status_code=410, detail="Quote expired")
         with negotiation_lock:
             if quote_id in closed_negotiations:
-                return NegotiationDecision(accepted=False, message="Negotiation closed; request a new quote.")
+                return NegotiationDecision(
+                    accepted=False,
+                    message="Negotiation closed; request a new quote.",
+                )
             if quote_id in agreed_prices:
-                return NegotiationDecision(accepted=True, final_price=agreed_prices[quote_id],
-                                           message="Previously agreed price remains binding.")
+                return NegotiationDecision(
+                    accepted=True,
+                    final_price=agreed_prices[quote_id],
+                    message="Previously agreed price remains binding.",
+                )
             decision = seller.pricing.negotiate(
                 quote, request.buyer_offer, prior_low_offers=low_offers.get(quote_id, 0)
             )
@@ -139,7 +149,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             raise HTTPException(status_code=409, detail="Order does not match quote")
         with negotiation_lock:
             if request.quote_id in closed_negotiations:
-                raise HTTPException(status_code=409, detail="Negotiation closed; request a new quote")
+                raise HTTPException(
+                    status_code=409,
+                    detail="Negotiation closed; request a new quote",
+                )
             expected_price = agreed_prices.get(request.quote_id, quote.ask_price)
         if request.amount != expected_price:
             raise HTTPException(

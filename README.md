@@ -16,6 +16,9 @@ tested end to end without a paid model key.
 - Sells machine-readable **A2A Interaction Trace** and **A2A Interaction Risk Report**
   services. The service checks task completion, artifact delivery, event order, latency,
   schema validity, disputes, and evidence provenance without claiming credit settlement.
+- Publishes packaged input/output contract identifiers and deterministic product-introduction,
+  pricing, privacy, provenance, reputation, and critique-defense responses without requiring
+  a model call.
 - Quotes and negotiates within a reservation-price floor, accepts orders idempotently, delivers
   results, and keeps an auditable SQLite order ledger.
 - Persists LangGraph checkpoints and derives stable purchase idempotency keys from the
@@ -87,10 +90,11 @@ The seller API then exposes Swagger documentation at `http://localhost:8000/docs
 Its temporary service-order sequence is:
 
 1. `GET /v1/catalog`
-2. `POST /v1/quotes`
-3. optionally `POST /v1/quotes/{quote_id}/negotiate`
-4. `POST /v1/orders` with an idempotency key
-5. `POST /v1/orders/{trade_id}/deliver`
+2. `GET /v1/contracts/interaction-v1`
+3. `POST /v1/quotes`
+4. optionally `POST /v1/quotes/{quote_id}/negotiate`
+5. `POST /v1/orders` with an idempotency key
+6. `POST /v1/orders/{trade_id}/deliver`
 
 The temporary commerce adapter accepts a list of consented A2A task events. Caller-submitted
 events are always marked `self_reported`; a caller cannot label its own data as verified.
@@ -173,6 +177,8 @@ contract exists, seller outputs continue to report `credit_settlement=not_evalua
 - `src/sharedos_commerce_agent/arena.py` — round orchestration and hard-rule checks
 - `src/sharedos_commerce_agent/strategy.py` — required feedback, ranking, purchase, and pricing logic
 - `src/sharedos_commerce_agent/telemetry.py` — deterministic A2A interaction evidence evaluation
+- `src/sharedos_commerce_agent/sales.py` — deterministic product introduction and buyer-response policy
+- `src/sharedos_commerce_agent/resources/` — packaged catalog, sales content, and wire contracts
 - `tests/test_graph.py` — routing plus in-memory and SQLite crash-recovery tests
 - `src/sharedos_commerce_agent/api.py` — seller REST API
 - `src/sharedos_commerce_agent/ledger.py` — idempotent service-order ledger
