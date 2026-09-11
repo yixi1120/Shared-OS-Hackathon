@@ -8,6 +8,7 @@ import random
 import sys
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from time import perf_counter
 from typing import Any, Callable
 
@@ -82,9 +83,10 @@ async def _exercise_buyer(
     *,
     buyer_number: int,
     round_number: int,
+    run_id: str,
 ) -> dict[str, Any]:
-    buyer_id = f"{persona.name}-{round_number}-{buyer_number}"
-    task_id = f"task-{round_number}-{buyer_number}"
+    buyer_id = f"{persona.name}-{run_id}-{round_number}-{buyer_number}"
+    task_id = f"{run_id}:task-{round_number}-{buyer_number}"
     quote_response = await client.post(
         "/v1/quotes",
         json={
@@ -113,7 +115,7 @@ async def _exercise_buyer(
         "buyer_id": buyer_id,
         "service_id": persona.service_id,
         "amount": decision["final_price"],
-        "idempotency_key": f"seller-harness:{round_number}:{buyer_number}",
+        "idempotency_key": f"seller-harness:{run_id}:{round_number}:{buyer_number}",
         "input": {"events": _interaction_events(task_id, buyer_id, buyer_number)},
     }
     first_response, replay_response = await asyncio.gather(
@@ -169,6 +171,7 @@ async def run_seller_harness(
     round_pause_seconds: float = 0.0,
     progress_every_seconds: float | None = None,
     on_progress: Callable[[dict[str, Any]], None] | None = None,
+    run_id: str = "default",
 ) -> dict[str, Any]:
     """Exercise concurrent buyers; duration mode turns the same oracle into a soak test."""
 
@@ -180,6 +183,8 @@ async def run_seller_harness(
         raise ValueError("round_pause_seconds cannot be negative")
     if progress_every_seconds is not None and progress_every_seconds <= 0:
         raise ValueError("progress_every_seconds must be positive")
+    if not run_id.strip() or len(run_id) > 64:
+        raise ValueError("run_id must contain 1 to 64 characters")
 
     app = create_app(Settings(ledger_path=ledger_path))
     transport = httpx.ASGITransport(app=app)
@@ -206,6 +211,7 @@ async def run_seller_harness(
             "passed": not failures and successful_interactions == interactions,
             "final": final,
             "mode": "soak" if duration_seconds is not None else "fixed_rounds",
+            "run_id": run_id,
             "seed": seed,
             "concurrency": concurrency,
             "rounds_completed": round_number,
@@ -239,6 +245,7 @@ async def run_seller_harness(
                         persona,
                         buyer_number=buyer_number,
                         round_number=round_number,
+                        run_id=run_id,
                     )
                     for buyer_number, persona in enumerate(personas)
                 ),
@@ -277,10 +284,22 @@ def main() -> None:
     parser.add_argument("--ledger-path", default=":memory:")
     parser.add_argument("--round-pause-seconds", type=float, default=0.0)
     parser.add_argument("--progress-every-seconds", type=float, default=60.0)
+    parser.add_argument(
+        "--run-id",
+        default=datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ"),
+        help="Unique namespace for buyers, tasks, and idempotency keys",
+    )
+    parser.add_argument("--progress-path", type=Path)
+    parser.add_argument("--report-path", type=Path)
     args = parser.parse_args()
 
     def print_progress(progress: dict[str, Any]) -> None:
-        print(json.dumps(progress, sort_keys=True), file=sys.stderr, flush=True)
+        line = json.dumps(progress, sort_keys=True)
+        print(line, file=sys.stderr, flush=True)
+        if args.progress_path is not None:
+            args.progress_path.parent.mkdir(parents=True, exist_ok=True)
+            with args.progress_path.open("a", encoding="utf-8") as stream:
+                stream.write(line + "\n")
 
     report = asyncio.run(
         run_seller_harness(
@@ -292,9 +311,16 @@ def main() -> None:
             round_pause_seconds=args.round_pause_seconds,
             progress_every_seconds=args.progress_every_seconds,
             on_progress=print_progress,
+            run_id=args.run_id,
         )
     )
-    print(json.dumps(report, indent=2, sort_keys=True))
+    rendered_report = json.dumps(report, indent=2, sort_keys=True)
+    print(rendered_report)
+    if args.report_path is not None:
+        args.report_path.parent.mkdir(parents=True, exist_ok=True)
+        temporary_path = args.report_path.with_suffix(args.report_path.suffix + ".tmp")
+        temporary_path.write_text(rendered_report + "\n", encoding="utf-8")
+        temporary_path.replace(args.report_path)
     if not report["passed"]:
         raise SystemExit(1)
 

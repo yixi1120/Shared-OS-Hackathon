@@ -110,6 +110,19 @@ soak run, use `uv run seller-harness --concurrency 16 --duration-seconds 7200`.
 For a resource-bounded persistent run, add
 `--ledger-path ./tmp/seller-soak.sqlite3 --round-pause-seconds 0.5`; progress is
 written to stderr every 60 seconds and the final JSON report to stdout.
+Give every persistent run a unique `--run-id`. Use `--progress-path` and
+`--report-path` to retain machine-readable evidence independently of the terminal:
+
+```bash
+uv run seller-harness \
+  --concurrency 16 \
+  --duration-seconds 7200 \
+  --round-pause-seconds 0.5 \
+  --run-id arena-soak-01 \
+  --ledger-path ./tmp/arena-soak-01/ledger.sqlite3 \
+  --progress-path ./tmp/arena-soak-01/progress.jsonl \
+  --report-path ./tmp/arena-soak-01/report.json
+```
 
 ## Model and cost policy
 

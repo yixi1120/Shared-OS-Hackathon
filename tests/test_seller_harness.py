@@ -1,5 +1,6 @@
 import pytest
 
+from sharedos_commerce_agent.ledger import Ledger
 from sharedos_commerce_agent.seller_harness import run_seller_harness
 
 
@@ -33,3 +34,26 @@ async def test_soak_mode_streams_progress_without_retaining_every_outcome() -> N
     assert report["interactions"] >= 2
     assert progress
     assert all(item["final"] is False for item in progress)
+
+
+async def test_distinct_run_ids_can_share_a_persistent_ledger(tmp_path) -> None:
+    ledger_path = tmp_path / "seller-harness.sqlite3"
+
+    first = await run_seller_harness(
+        concurrency=2,
+        rounds=1,
+        ledger_path=str(ledger_path),
+        run_id="first-run",
+    )
+    second = await run_seller_harness(
+        concurrency=2,
+        rounds=1,
+        ledger_path=str(ledger_path),
+        run_id="second-run",
+    )
+
+    assert first["passed"] is True
+    assert second["passed"] is True
+    assert first["run_id"] == "first-run"
+    assert second["run_id"] == "second-run"
+    assert len(Ledger(str(ledger_path)).list()) == 4
