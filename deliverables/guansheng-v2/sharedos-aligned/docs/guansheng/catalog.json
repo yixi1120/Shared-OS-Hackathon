@@ -1,0 +1,43 @@
+{
+  "catalog_version": "guansheng-v2-2026-09-11",
+  "product_name": "A2A Interaction Intelligence",
+  "service_base_url": null,
+  "deployment_confirmation": "pending_yating",
+  "pricing_policy_version": "arena-fixed-v1",
+  "authentication": "Bearer when configured; obtain credentials through authorized operator channel",
+  "services": [
+    {
+      "service_id": "a2a-interaction-trace",
+      "name": "A2A Interaction Trace",
+      "description": "Evaluate one submitted task and return execution metrics, source confidence and risk flags. No payment verification or global reputation.",
+      "regular_price_credits": 6,
+      "first_purchase_price_credits": 6,
+      "reservation_price_credits": 5,
+      "price_authority": "POST /v1/quotes",
+      "input_schema": "input.schema.json",
+      "output_schema": "trace_delivery.schema.json"
+    },
+    {
+      "service_id": "a2a-interaction-risk-report",
+      "name": "A2A Interaction Risk Report",
+      "description": "Return the same single-task metrics with meaning, not_meaning and bilingual explanations in interpretation.flags. No extra evidence or provenance upgrade.",
+      "regular_price_credits": 6,
+      "first_purchase_price_credits": 6,
+      "reservation_price_credits": 5,
+      "price_authority": "POST /v1/quotes",
+      "input_schema": "input.schema.json",
+      "output_schema": "risk_delivery.schema.json"
+    }
+  ],
+  "purchase_flow": [
+    "GET /v1/catalog",
+    "POST /v1/quotes {buyer_id,service_id,budget}",
+    "Optional POST /v1/quotes/{quote_id}/negotiate {buyer_offer}; consume decision, never invent acceptance",
+    "POST /v1/orders {quote_id,buyer_id,service_id,amount,idempotency_key,input}; amount is accepted final_price or quote ask_price",
+    "POST /v1/orders/{trade_id}/deliver",
+    "GET /v1/orders/{trade_id} for status"
+  ],
+  "input_boundary": "1 to 200 events for one task and one subject. Public events are self_reported; unknown fields discarded before persistence. No raw prompt or full artifact required. Hashes/references are stored, not independently verified.",
+  "credit_settlement": "not_evaluated",
+  "production_sla_verified": false
+}

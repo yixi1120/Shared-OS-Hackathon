@@ -1,3 +1,23 @@
+# 冠盛最新交付：V2（2026-09-11）
+
+本分支最新冠盛交付位于 [deliverables/guansheng-v2](deliverables/guansheng-v2)。两个服务均为 **6 credits，底价 5**；Risk Report 对齐 13 项标记和 `interpretation.flags`。
+
+- [Word 手册](deliverables/guansheng-v2/冠盛产品设计与自动销售交付手册V2.docx)
+- [完整下载包](deliverables/guansheng-v2/冠盛V2对齐交付包.zip)
+- [Dashboard 源码和启动说明](deliverables/guansheng-v2/sharedos-aligned/README_GUANSHENG.md)
+- [机器可读 Catalog、Pitch、FAQ、销售规则与 Schema](deliverables/guansheng-v2/sharedos-aligned/docs/guansheng)
+- [真实本地 API 与浏览器验证记录](deliverables/guansheng-v2/verification)
+
+交付目录保留已验收的思棋冻结源码，能够独立启动真实 API 与 Dashboard；根目录旧源码和历史材料保留用于追溯，并未在本次升级为 V2。团队最新 main 未被覆盖或合并。需要接入最新 Runtime 时，按包内说明合入 Dashboard 和产品文件，再验证接口兼容性。
+
+48 项相关回归、30 项 HTTP/Schema 检查、7 项浏览器检查已通过；全套测试因验证环境缺少 Brain 依赖未完成。Discord、node ID、purpose string 和线上地址仍待雅婷确认；未部署或正式提交比赛。
+
+Word、包内说明和验证记录属于上传前的验收快照，里面“未上传 GitHub”描述的是制作时状态；本入口及本次 Git 提交记录为上传状态依据。原文件和哈希保持一致。
+
+---
+
+## 历史版本说明（以下为原 README）
+
 # SharedOS Agent Commerce Network
 
 > Guansheng's integrated seller presentation, machine-readable contracts, FAQ API,

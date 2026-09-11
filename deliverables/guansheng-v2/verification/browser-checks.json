@@ -1,0 +1,13 @@
+{
+  "checked_at": "2026-09-11T07:05:53.522Z",
+  "checks": [
+    "success real quote/order/deliver/read and score 98",
+    "failure real quote/order/deliver/read and score 43",
+    "401 clears prior report",
+    "budget below 5 rejected visibly",
+    "budget5 creates declared amount5",
+    "counteroffer does not auto-order",
+    "offline connection clears prior report"
+  ],
+  "console_errors": []
+}

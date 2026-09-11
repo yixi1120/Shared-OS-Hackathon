@@ -1,0 +1,1180 @@
+[
+  {
+    "id": "success_self_reported",
+    "proof": "98 execution is independent of 0.15 evidence; public success demo.",
+    "events": [
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "request_received",
+        "occurred_at": "2026-09-10T00:00:00+00:00",
+        "schema_valid": true,
+        "evidence_id": "e0",
+        "provenance": "self_reported"
+      },
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "task_started",
+        "occurred_at": "2026-09-10T00:00:01+00:00",
+        "schema_valid": true,
+        "evidence_id": "e1",
+        "provenance": "self_reported"
+      },
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "artifact_delivered",
+        "occurred_at": "2026-09-10T00:00:03+00:00",
+        "schema_valid": true,
+        "evidence_id": "e2",
+        "provenance": "self_reported"
+      },
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "task_completed",
+        "occurred_at": "2026-09-10T00:00:04+00:00",
+        "schema_valid": true,
+        "evidence_id": "e3",
+        "provenance": "self_reported"
+      }
+    ],
+    "expected": {
+      "completed": true,
+      "delivered": true,
+      "ordered": true,
+      "schema_valid_rate": 1.0,
+      "disputed": false,
+      "end_to_end_latency_ms": 4000,
+      "execution_score": 98,
+      "evidence_weight": 0.15,
+      "confidence": "self-reported-single-interaction",
+      "reputation_eligible": false,
+      "credit_settlement": "not_evaluated",
+      "risk_flags": [
+        "evidence_not_reputation_eligible",
+        "weak_evidence_source",
+        "credit_settlement_not_evaluated"
+      ],
+      "task_id": "task-v1",
+      "subject_agent_id": "subject-v1",
+      "provenance_counts": {
+        "self_reported": 4
+      },
+      "evidence_ids": [
+        "e0",
+        "e1",
+        "e2",
+        "e3"
+      ]
+    }
+  },
+  {
+    "id": "missing_artifact",
+    "proof": "Completion declaration without artifact cannot earn completion points.",
+    "events": [
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "request_received",
+        "occurred_at": "2026-09-10T00:00:00+00:00",
+        "schema_valid": true,
+        "evidence_id": "e0",
+        "provenance": "self_reported"
+      },
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "task_started",
+        "occurred_at": "2026-09-10T00:00:01+00:00",
+        "schema_valid": true,
+        "evidence_id": "e1",
+        "provenance": "self_reported"
+      },
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "task_completed",
+        "occurred_at": "2026-09-10T00:00:04+00:00",
+        "schema_valid": true,
+        "evidence_id": "e2",
+        "provenance": "self_reported"
+      }
+    ],
+    "expected": {
+      "completed": false,
+      "delivered": false,
+      "ordered": true,
+      "schema_valid_rate": 1.0,
+      "disputed": false,
+      "end_to_end_latency_ms": 4000,
+      "execution_score": 43,
+      "evidence_weight": 0.15,
+      "confidence": "self-reported-single-interaction",
+      "reputation_eligible": false,
+      "credit_settlement": "not_evaluated",
+      "risk_flags": [
+        "artifact_not_delivered",
+        "evidence_not_reputation_eligible",
+        "weak_evidence_source",
+        "credit_settlement_not_evaluated"
+      ],
+      "task_id": "task-v1",
+      "subject_agent_id": "subject-v1",
+      "provenance_counts": {
+        "self_reported": 3
+      },
+      "evidence_ids": [
+        "e0",
+        "e1",
+        "e2"
+      ]
+    }
+  },
+  {
+    "id": "explicit_failure",
+    "proof": "Failure demo: report can deliver despite failed subject task.",
+    "events": [
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "request_received",
+        "occurred_at": "2026-09-10T00:00:00+00:00",
+        "schema_valid": true,
+        "evidence_id": "e0",
+        "provenance": "self_reported"
+      },
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "task_started",
+        "occurred_at": "2026-09-10T00:00:01+00:00",
+        "schema_valid": true,
+        "evidence_id": "e1",
+        "provenance": "self_reported"
+      },
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "task_failed",
+        "occurred_at": "2026-09-10T00:00:04+00:00",
+        "schema_valid": true,
+        "evidence_id": "e2",
+        "provenance": "self_reported"
+      }
+    ],
+    "expected": {
+      "completed": false,
+      "delivered": false,
+      "ordered": true,
+      "schema_valid_rate": 1.0,
+      "disputed": false,
+      "end_to_end_latency_ms": 4000,
+      "execution_score": 43,
+      "evidence_weight": 0.15,
+      "confidence": "self-reported-single-interaction",
+      "reputation_eligible": false,
+      "credit_settlement": "not_evaluated",
+      "risk_flags": [
+        "artifact_not_delivered",
+        "evidence_not_reputation_eligible",
+        "completion_not_recorded",
+        "task_explicitly_failed",
+        "weak_evidence_source",
+        "credit_settlement_not_evaluated"
+      ],
+      "task_id": "task-v1",
+      "subject_agent_id": "subject-v1",
+      "provenance_counts": {
+        "self_reported": 3
+      },
+      "evidence_ids": [
+        "e0",
+        "e1",
+        "e2"
+      ]
+    }
+  },
+  {
+    "id": "stage_order",
+    "proof": "Stage regression loses exactly 15 points.",
+    "events": [
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "task_started",
+        "occurred_at": "2026-09-10T00:00:00+00:00",
+        "schema_valid": true,
+        "evidence_id": "e0",
+        "provenance": "self_reported"
+      },
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "request_received",
+        "occurred_at": "2026-09-10T00:00:01+00:00",
+        "schema_valid": true,
+        "evidence_id": "e1",
+        "provenance": "self_reported"
+      },
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "artifact_delivered",
+        "occurred_at": "2026-09-10T00:00:03+00:00",
+        "schema_valid": true,
+        "evidence_id": "e2",
+        "provenance": "self_reported"
+      },
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "task_completed",
+        "occurred_at": "2026-09-10T00:00:04+00:00",
+        "schema_valid": true,
+        "evidence_id": "e3",
+        "provenance": "self_reported"
+      }
+    ],
+    "expected": {
+      "completed": true,
+      "delivered": true,
+      "ordered": false,
+      "schema_valid_rate": 1.0,
+      "disputed": false,
+      "end_to_end_latency_ms": 4000,
+      "execution_score": 83,
+      "evidence_weight": 0.15,
+      "confidence": "self-reported-single-interaction",
+      "reputation_eligible": false,
+      "credit_settlement": "not_evaluated",
+      "risk_flags": [
+        "invalid_stage_order",
+        "evidence_not_reputation_eligible",
+        "weak_evidence_source",
+        "credit_settlement_not_evaluated"
+      ],
+      "task_id": "task-v1",
+      "subject_agent_id": "subject-v1",
+      "provenance_counts": {
+        "self_reported": 4
+      },
+      "evidence_ids": [
+        "e0",
+        "e1",
+        "e2",
+        "e3"
+      ]
+    }
+  },
+  {
+    "id": "partial_schema",
+    "proof": "One of four invalid flags loses 5 points; structural invalid input is rejected separately.",
+    "events": [
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "request_received",
+        "occurred_at": "2026-09-10T00:00:00+00:00",
+        "schema_valid": true,
+        "evidence_id": "e0",
+        "provenance": "self_reported"
+      },
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "task_started",
+        "occurred_at": "2026-09-10T00:00:01+00:00",
+        "schema_valid": true,
+        "evidence_id": "e1",
+        "provenance": "self_reported"
+      },
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "artifact_delivered",
+        "occurred_at": "2026-09-10T00:00:03+00:00",
+        "schema_valid": false,
+        "evidence_id": "e2",
+        "provenance": "self_reported"
+      },
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "task_completed",
+        "occurred_at": "2026-09-10T00:00:04+00:00",
+        "schema_valid": true,
+        "evidence_id": "e3",
+        "provenance": "self_reported"
+      }
+    ],
+    "expected": {
+      "completed": true,
+      "delivered": true,
+      "ordered": true,
+      "schema_valid_rate": 0.75,
+      "disputed": false,
+      "end_to_end_latency_ms": 4000,
+      "execution_score": 93,
+      "evidence_weight": 0.15,
+      "confidence": "self-reported-single-interaction",
+      "reputation_eligible": false,
+      "credit_settlement": "not_evaluated",
+      "risk_flags": [
+        "schema_validation_failure",
+        "evidence_not_reputation_eligible",
+        "weak_evidence_source",
+        "credit_settlement_not_evaluated"
+      ],
+      "task_id": "task-v1",
+      "subject_agent_id": "subject-v1",
+      "provenance_counts": {
+        "self_reported": 4
+      },
+      "evidence_ids": [
+        "e0",
+        "e1",
+        "e2",
+        "e3"
+      ]
+    }
+  },
+  {
+    "id": "dispute",
+    "proof": "Dispute loses 25 points without changing completed.",
+    "events": [
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "request_received",
+        "occurred_at": "2026-09-10T00:00:00+00:00",
+        "schema_valid": true,
+        "evidence_id": "e0",
+        "provenance": "self_reported"
+      },
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "task_started",
+        "occurred_at": "2026-09-10T00:00:01+00:00",
+        "schema_valid": true,
+        "evidence_id": "e1",
+        "provenance": "self_reported"
+      },
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "artifact_delivered",
+        "occurred_at": "2026-09-10T00:00:03+00:00",
+        "schema_valid": true,
+        "evidence_id": "e2",
+        "provenance": "self_reported"
+      },
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "task_completed",
+        "occurred_at": "2026-09-10T00:00:04+00:00",
+        "schema_valid": true,
+        "evidence_id": "e3",
+        "provenance": "self_reported"
+      },
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "disputed",
+        "occurred_at": "2026-09-10T00:00:05+00:00",
+        "schema_valid": true,
+        "evidence_id": "e4",
+        "provenance": "self_reported"
+      }
+    ],
+    "expected": {
+      "completed": true,
+      "delivered": true,
+      "ordered": true,
+      "schema_valid_rate": 1.0,
+      "disputed": true,
+      "end_to_end_latency_ms": 4000,
+      "execution_score": 73,
+      "evidence_weight": 0.15,
+      "confidence": "self-reported-single-interaction",
+      "reputation_eligible": false,
+      "credit_settlement": "not_evaluated",
+      "risk_flags": [
+        "interaction_disputed",
+        "evidence_not_reputation_eligible",
+        "weak_evidence_source",
+        "credit_settlement_not_evaluated"
+      ],
+      "task_id": "task-v1",
+      "subject_agent_id": "subject-v1",
+      "provenance_counts": {
+        "self_reported": 5
+      },
+      "evidence_ids": [
+        "e0",
+        "e1",
+        "e2",
+        "e3",
+        "e4"
+      ]
+    }
+  },
+  {
+    "id": "single_event",
+    "proof": "One ordered schema-valid event still earns 35 under compatible V1.",
+    "events": [
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "request_received",
+        "occurred_at": "2026-09-10T00:00:00+00:00",
+        "schema_valid": true,
+        "evidence_id": "e0",
+        "provenance": "self_reported"
+      }
+    ],
+    "expected": {
+      "completed": false,
+      "delivered": false,
+      "ordered": true,
+      "schema_valid_rate": 1.0,
+      "disputed": false,
+      "end_to_end_latency_ms": null,
+      "execution_score": 35,
+      "evidence_weight": 0.15,
+      "confidence": "self-reported-single-interaction",
+      "reputation_eligible": false,
+      "credit_settlement": "not_evaluated",
+      "risk_flags": [
+        "missing_terminal_task_state",
+        "artifact_not_delivered",
+        "evidence_not_reputation_eligible",
+        "task_start_not_recorded",
+        "completion_not_recorded",
+        "latency_not_computable",
+        "weak_evidence_source",
+        "credit_settlement_not_evaluated"
+      ],
+      "task_id": "task-v1",
+      "subject_agent_id": "subject-v1",
+      "provenance_counts": {
+        "self_reported": 1
+      },
+      "evidence_ids": [
+        "e0"
+      ]
+    }
+  },
+  {
+    "id": "observed_success",
+    "proof": "Trusted internal provenance passes only the basic V1 eligibility gate.",
+    "events": [
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "request_received",
+        "occurred_at": "2026-09-10T00:00:00+00:00",
+        "schema_valid": true,
+        "evidence_id": "e0",
+        "provenance": "observed"
+      },
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "task_started",
+        "occurred_at": "2026-09-10T00:00:01+00:00",
+        "schema_valid": true,
+        "evidence_id": "e1",
+        "provenance": "observed"
+      },
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "artifact_delivered",
+        "occurred_at": "2026-09-10T00:00:03+00:00",
+        "schema_valid": true,
+        "evidence_id": "e2",
+        "provenance": "observed"
+      },
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "task_completed",
+        "occurred_at": "2026-09-10T00:00:04+00:00",
+        "schema_valid": true,
+        "evidence_id": "e3",
+        "provenance": "observed"
+      }
+    ],
+    "expected": {
+      "completed": true,
+      "delivered": true,
+      "ordered": true,
+      "schema_valid_rate": 1.0,
+      "disputed": false,
+      "end_to_end_latency_ms": 4000,
+      "execution_score": 98,
+      "evidence_weight": 0.9,
+      "confidence": "service-observed-single-interaction",
+      "reputation_eligible": true,
+      "credit_settlement": "not_evaluated",
+      "risk_flags": [
+        "credit_settlement_not_evaluated"
+      ],
+      "task_id": "task-v1",
+      "subject_agent_id": "subject-v1",
+      "provenance_counts": {
+        "observed": 4
+      },
+      "evidence_ids": [
+        "e0",
+        "e1",
+        "e2",
+        "e3"
+      ]
+    }
+  },
+  {
+    "id": "mixed_trusted",
+    "proof": "Mixed provenance uses minimum, not mean.",
+    "events": [
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "request_received",
+        "occurred_at": "2026-09-10T00:00:00+00:00",
+        "schema_valid": true,
+        "evidence_id": "e0",
+        "provenance": "platform"
+      },
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "task_started",
+        "occurred_at": "2026-09-10T00:00:01+00:00",
+        "schema_valid": true,
+        "evidence_id": "e1",
+        "provenance": "observed"
+      },
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "artifact_delivered",
+        "occurred_at": "2026-09-10T00:00:03+00:00",
+        "schema_valid": true,
+        "evidence_id": "e2",
+        "provenance": "platform"
+      },
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "task_completed",
+        "occurred_at": "2026-09-10T00:00:04+00:00",
+        "schema_valid": true,
+        "evidence_id": "e3",
+        "provenance": "observed"
+      }
+    ],
+    "expected": {
+      "completed": true,
+      "delivered": true,
+      "ordered": true,
+      "schema_valid_rate": 1.0,
+      "disputed": false,
+      "end_to_end_latency_ms": 4000,
+      "execution_score": 98,
+      "evidence_weight": 0.9,
+      "confidence": "service-observed-single-interaction",
+      "reputation_eligible": true,
+      "credit_settlement": "not_evaluated",
+      "risk_flags": [
+        "credit_settlement_not_evaluated"
+      ],
+      "task_id": "task-v1",
+      "subject_agent_id": "subject-v1",
+      "provenance_counts": {
+        "platform": 2,
+        "observed": 2
+      },
+      "evidence_ids": [
+        "e0",
+        "e1",
+        "e2",
+        "e3"
+      ]
+    }
+  },
+  {
+    "id": "mixed_bilateral",
+    "proof": "One bilateral event caps whole-trace confidence.",
+    "events": [
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "request_received",
+        "occurred_at": "2026-09-10T00:00:00+00:00",
+        "schema_valid": true,
+        "evidence_id": "e0",
+        "provenance": "platform"
+      },
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "task_started",
+        "occurred_at": "2026-09-10T00:00:01+00:00",
+        "schema_valid": true,
+        "evidence_id": "e1",
+        "provenance": "observed"
+      },
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "artifact_delivered",
+        "occurred_at": "2026-09-10T00:00:03+00:00",
+        "schema_valid": true,
+        "evidence_id": "e2",
+        "provenance": "bilateral"
+      },
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "task_completed",
+        "occurred_at": "2026-09-10T00:00:04+00:00",
+        "schema_valid": true,
+        "evidence_id": "e3",
+        "provenance": "platform"
+      }
+    ],
+    "expected": {
+      "completed": true,
+      "delivered": true,
+      "ordered": true,
+      "schema_valid_rate": 1.0,
+      "disputed": false,
+      "end_to_end_latency_ms": 4000,
+      "execution_score": 98,
+      "evidence_weight": 0.6,
+      "confidence": "bilateral-single-interaction",
+      "reputation_eligible": false,
+      "credit_settlement": "not_evaluated",
+      "risk_flags": [
+        "evidence_not_reputation_eligible",
+        "weak_evidence_source",
+        "credit_settlement_not_evaluated"
+      ],
+      "task_id": "task-v1",
+      "subject_agent_id": "subject-v1",
+      "provenance_counts": {
+        "platform": 2,
+        "observed": 1,
+        "bilateral": 1
+      },
+      "evidence_ids": [
+        "e0",
+        "e1",
+        "e2",
+        "e3"
+      ]
+    }
+  },
+  {
+    "id": "duplicate_event",
+    "proof": "V1 counts duplicates and does not deduplicate evidence IDs.",
+    "events": [
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "request_received",
+        "occurred_at": "2026-09-10T00:00:00+00:00",
+        "schema_valid": true,
+        "evidence_id": "e0",
+        "provenance": "self_reported"
+      },
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "task_started",
+        "occurred_at": "2026-09-10T00:00:01+00:00",
+        "schema_valid": true,
+        "evidence_id": "e1",
+        "provenance": "self_reported"
+      },
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "task_started",
+        "occurred_at": "2026-09-10T00:00:01+00:00",
+        "schema_valid": true,
+        "evidence_id": "e1",
+        "provenance": "self_reported"
+      },
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "artifact_delivered",
+        "occurred_at": "2026-09-10T00:00:03+00:00",
+        "schema_valid": true,
+        "evidence_id": "e3",
+        "provenance": "self_reported"
+      },
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "task_completed",
+        "occurred_at": "2026-09-10T00:00:04+00:00",
+        "schema_valid": true,
+        "evidence_id": "e4",
+        "provenance": "self_reported"
+      }
+    ],
+    "expected": {
+      "completed": true,
+      "delivered": true,
+      "ordered": true,
+      "schema_valid_rate": 1.0,
+      "disputed": false,
+      "end_to_end_latency_ms": 4000,
+      "execution_score": 98,
+      "evidence_weight": 0.15,
+      "confidence": "self-reported-single-interaction",
+      "reputation_eligible": false,
+      "credit_settlement": "not_evaluated",
+      "risk_flags": [
+        "evidence_not_reputation_eligible",
+        "weak_evidence_source",
+        "credit_settlement_not_evaluated"
+      ],
+      "task_id": "task-v1",
+      "subject_agent_id": "subject-v1",
+      "provenance_counts": {
+        "self_reported": 5
+      },
+      "evidence_ids": [
+        "e0",
+        "e1",
+        "e1",
+        "e3",
+        "e4"
+      ]
+    }
+  },
+  {
+    "id": "missing_start",
+    "proof": "Without request/start, latency bonus is zero but completion points remain.",
+    "events": [
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "artifact_delivered",
+        "occurred_at": "2026-09-10T00:00:03+00:00",
+        "schema_valid": true,
+        "evidence_id": "e0",
+        "provenance": "self_reported"
+      },
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "task_completed",
+        "occurred_at": "2026-09-10T00:00:04+00:00",
+        "schema_valid": true,
+        "evidence_id": "e1",
+        "provenance": "self_reported"
+      }
+    ],
+    "expected": {
+      "completed": true,
+      "delivered": true,
+      "ordered": true,
+      "schema_valid_rate": 1.0,
+      "disputed": false,
+      "end_to_end_latency_ms": null,
+      "execution_score": 90,
+      "evidence_weight": 0.15,
+      "confidence": "self-reported-single-interaction",
+      "reputation_eligible": false,
+      "credit_settlement": "not_evaluated",
+      "risk_flags": [
+        "evidence_not_reputation_eligible",
+        "task_start_not_recorded",
+        "latency_not_computable",
+        "weak_evidence_source",
+        "credit_settlement_not_evaluated"
+      ],
+      "task_id": "task-v1",
+      "subject_agent_id": "subject-v1",
+      "provenance_counts": {
+        "self_reported": 2
+      },
+      "evidence_ids": [
+        "e0",
+        "e1"
+      ]
+    }
+  },
+  {
+    "id": "missing_references",
+    "proof": "Missing references do not change compatible V1 execution.",
+    "events": [
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "request_received",
+        "occurred_at": "2026-09-10T00:00:00+00:00",
+        "schema_valid": true,
+        "evidence_id": null,
+        "provenance": "self_reported"
+      },
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "task_started",
+        "occurred_at": "2026-09-10T00:00:01+00:00",
+        "schema_valid": true,
+        "evidence_id": null,
+        "provenance": "self_reported"
+      },
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "artifact_delivered",
+        "occurred_at": "2026-09-10T00:00:03+00:00",
+        "schema_valid": true,
+        "evidence_id": null,
+        "provenance": "self_reported"
+      },
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "task_completed",
+        "occurred_at": "2026-09-10T00:00:04+00:00",
+        "schema_valid": true,
+        "evidence_id": null,
+        "provenance": "self_reported"
+      }
+    ],
+    "expected": {
+      "completed": true,
+      "delivered": true,
+      "ordered": true,
+      "schema_valid_rate": 1.0,
+      "disputed": false,
+      "end_to_end_latency_ms": 4000,
+      "execution_score": 98,
+      "evidence_weight": 0.15,
+      "confidence": "self-reported-single-interaction",
+      "reputation_eligible": false,
+      "credit_settlement": "not_evaluated",
+      "risk_flags": [
+        "evidence_not_reputation_eligible",
+        "evidence_reference_missing",
+        "weak_evidence_source",
+        "credit_settlement_not_evaluated"
+      ],
+      "task_id": "task-v1",
+      "subject_agent_id": "subject-v1",
+      "provenance_counts": {
+        "self_reported": 4
+      },
+      "evidence_ids": []
+    }
+  },
+  {
+    "id": "mixed_untrusted",
+    "proof": "A single self-report caps evidence weight at 0.15.",
+    "events": [
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "request_received",
+        "occurred_at": "2026-09-10T00:00:00+00:00",
+        "schema_valid": true,
+        "evidence_id": "e0",
+        "provenance": "platform"
+      },
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "task_started",
+        "occurred_at": "2026-09-10T00:00:01+00:00",
+        "schema_valid": true,
+        "evidence_id": "e1",
+        "provenance": "observed"
+      },
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "artifact_delivered",
+        "occurred_at": "2026-09-10T00:00:03+00:00",
+        "schema_valid": true,
+        "evidence_id": "e2",
+        "provenance": "bilateral"
+      },
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "task_completed",
+        "occurred_at": "2026-09-10T00:00:04+00:00",
+        "schema_valid": true,
+        "evidence_id": "e3",
+        "provenance": "self_reported"
+      }
+    ],
+    "expected": {
+      "completed": true,
+      "delivered": true,
+      "ordered": true,
+      "schema_valid_rate": 1.0,
+      "disputed": false,
+      "end_to_end_latency_ms": 4000,
+      "execution_score": 98,
+      "evidence_weight": 0.15,
+      "confidence": "self-reported-single-interaction",
+      "reputation_eligible": false,
+      "credit_settlement": "not_evaluated",
+      "risk_flags": [
+        "evidence_not_reputation_eligible",
+        "weak_evidence_source",
+        "credit_settlement_not_evaluated"
+      ],
+      "task_id": "task-v1",
+      "subject_agent_id": "subject-v1",
+      "provenance_counts": {
+        "platform": 1,
+        "observed": 1,
+        "bilateral": 1,
+        "self_reported": 1
+      },
+      "evidence_ids": [
+        "e0",
+        "e1",
+        "e2",
+        "e3"
+      ]
+    }
+  },
+  {
+    "id": "platform_success",
+    "proof": "Platform provenance is trusted internal metadata, never a public claim.",
+    "events": [
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "request_received",
+        "occurred_at": "2026-09-10T00:00:00+00:00",
+        "schema_valid": true,
+        "evidence_id": "e0",
+        "provenance": "platform"
+      },
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "task_started",
+        "occurred_at": "2026-09-10T00:00:01+00:00",
+        "schema_valid": true,
+        "evidence_id": "e1",
+        "provenance": "platform"
+      },
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "artifact_delivered",
+        "occurred_at": "2026-09-10T00:00:03+00:00",
+        "schema_valid": true,
+        "evidence_id": "e2",
+        "provenance": "platform"
+      },
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "task_completed",
+        "occurred_at": "2026-09-10T00:00:04+00:00",
+        "schema_valid": true,
+        "evidence_id": "e3",
+        "provenance": "platform"
+      }
+    ],
+    "expected": {
+      "completed": true,
+      "delivered": true,
+      "ordered": true,
+      "schema_valid_rate": 1.0,
+      "disputed": false,
+      "end_to_end_latency_ms": 4000,
+      "execution_score": 98,
+      "evidence_weight": 1,
+      "confidence": "platform-verified-single-interaction",
+      "reputation_eligible": true,
+      "credit_settlement": "not_evaluated",
+      "risk_flags": [
+        "credit_settlement_not_evaluated"
+      ],
+      "task_id": "task-v1",
+      "subject_agent_id": "subject-v1",
+      "provenance_counts": {
+        "platform": 4
+      },
+      "evidence_ids": [
+        "e0",
+        "e1",
+        "e2",
+        "e3"
+      ]
+    }
+  },
+  {
+    "id": "long_latency",
+    "proof": "Latency bonus reaches zero at 20 seconds; no further penalty.",
+    "events": [
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "request_received",
+        "occurred_at": "2026-09-10T00:00:00+00:00",
+        "schema_valid": true,
+        "evidence_id": "e0",
+        "provenance": "self_reported"
+      },
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "task_started",
+        "occurred_at": "2026-09-10T00:00:01+00:00",
+        "schema_valid": true,
+        "evidence_id": "e1",
+        "provenance": "self_reported"
+      },
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "artifact_delivered",
+        "occurred_at": "2026-09-10T00:00:03+00:00",
+        "schema_valid": true,
+        "evidence_id": "e2",
+        "provenance": "self_reported"
+      },
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "task_completed",
+        "occurred_at": "2026-09-10T00:00:25+00:00",
+        "schema_valid": true,
+        "evidence_id": "e3",
+        "provenance": "self_reported"
+      }
+    ],
+    "expected": {
+      "completed": true,
+      "delivered": true,
+      "ordered": true,
+      "schema_valid_rate": 1.0,
+      "disputed": false,
+      "end_to_end_latency_ms": 25000,
+      "execution_score": 90,
+      "evidence_weight": 0.15,
+      "confidence": "self-reported-single-interaction",
+      "reputation_eligible": false,
+      "credit_settlement": "not_evaluated",
+      "risk_flags": [
+        "evidence_not_reputation_eligible",
+        "weak_evidence_source",
+        "credit_settlement_not_evaluated"
+      ],
+      "task_id": "task-v1",
+      "subject_agent_id": "subject-v1",
+      "provenance_counts": {
+        "self_reported": 4
+      },
+      "evidence_ids": [
+        "e0",
+        "e1",
+        "e2",
+        "e3"
+      ]
+    }
+  },
+  {
+    "id": "conflicting_terminals",
+    "proof": "Known V1 defect: failure does not override recorded completion.",
+    "events": [
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "request_received",
+        "occurred_at": "2026-09-10T00:00:00+00:00",
+        "schema_valid": true,
+        "evidence_id": "e0",
+        "provenance": "self_reported"
+      },
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "task_started",
+        "occurred_at": "2026-09-10T00:00:01+00:00",
+        "schema_valid": true,
+        "evidence_id": "e1",
+        "provenance": "self_reported"
+      },
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "artifact_delivered",
+        "occurred_at": "2026-09-10T00:00:03+00:00",
+        "schema_valid": true,
+        "evidence_id": "e2",
+        "provenance": "self_reported"
+      },
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "task_completed",
+        "occurred_at": "2026-09-10T00:00:04+00:00",
+        "schema_valid": true,
+        "evidence_id": "e3",
+        "provenance": "self_reported"
+      },
+      {
+        "task_id": "task-v1",
+        "subject_agent_id": "subject-v1",
+        "stage": "task_failed",
+        "occurred_at": "2026-09-10T00:00:05+00:00",
+        "schema_valid": true,
+        "evidence_id": "e4",
+        "provenance": "self_reported"
+      }
+    ],
+    "expected": {
+      "completed": true,
+      "delivered": true,
+      "ordered": true,
+      "schema_valid_rate": 1.0,
+      "disputed": false,
+      "end_to_end_latency_ms": 5000,
+      "execution_score": 97.5,
+      "evidence_weight": 0.15,
+      "confidence": "self-reported-single-interaction",
+      "reputation_eligible": false,
+      "credit_settlement": "not_evaluated",
+      "risk_flags": [
+        "evidence_not_reputation_eligible",
+        "task_explicitly_failed",
+        "weak_evidence_source",
+        "credit_settlement_not_evaluated"
+      ],
+      "task_id": "task-v1",
+      "subject_agent_id": "subject-v1",
+      "provenance_counts": {
+        "self_reported": 5
+      },
+      "evidence_ids": [
+        "e0",
+        "e1",
+        "e2",
+        "e3",
+        "e4"
+      ]
+    }
+  }
+]

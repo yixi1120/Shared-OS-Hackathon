@@ -1,0 +1,11 @@
+{
+  "siqi_source_and_test_files_unchanged": 29,
+  "targeted_pytest_passed": 48,
+  "warnings": 1,
+  "full_suite": "Not completed: existing test environment missing langgraph-checkpoint-sqlite. No claim of full-suite pass.",
+  "http_contract_checks": 30,
+  "browser_checks": 7,
+  "word_pages": 24,
+  "production_deployed": false,
+  "github_uploaded_this_revision": false
+}

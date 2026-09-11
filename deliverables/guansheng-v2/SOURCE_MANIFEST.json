@@ -1,0 +1,6 @@
+{
+  "siqi_zip_sha256": "49a09f114c6acb09c48eeceeb346a90c555d5508415d4aefd28e5712184afe6a",
+  "base": "siqi sharedos-siqi-v1 based on main 566b54e",
+  "product_policy": "arena-fixed-v1",
+  "production_deployed": false
+}

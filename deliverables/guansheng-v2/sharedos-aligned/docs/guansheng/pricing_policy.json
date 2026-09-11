@@ -1,0 +1,32 @@
+{
+  "version": "arena-fixed-v1",
+  "currency": "credits",
+  "regular_price": 6,
+  "first_purchase_price": 6,
+  "reservation_price": 5,
+  "budget_rules": [
+    {
+      "min": 0,
+      "max": 4,
+      "http_status": 409,
+      "detail": "insufficient_budget"
+    },
+    {
+      "min": 5,
+      "max": 5,
+      "ask_price": 5
+    },
+    {
+      "min": 6,
+      "max": 100,
+      "ask_price": 6
+    }
+  ],
+  "quote_ttl_seconds": 600,
+  "bundle_enabled": false,
+  "paid_provenance_upgrade": false,
+  "price_authority": "valid runtime quote and accepted final_price",
+  "settlement": "not_evaluated",
+  "below_floor": "First counter at 5; second below-floor offer closes negotiation. Closed quote cannot be ordered or revived. Request a new quote.",
+  "legacy_quotes": "Preserve quote-local terms; absent policy version means legacy-v1."
+}

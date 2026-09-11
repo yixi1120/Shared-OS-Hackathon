@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "trade_id",
+    "status",
+    "output"
+  ],
+  "properties": {
+    "trade_id": {
+      "type": "string"
+    },
+    "status": {
+      "const": "delivered"
+    },
+    "output": {
+      "properties": {
+        "task_id": {
+          "title": "Task Id",
+          "type": "string"
+        },
+        "subject_agent_id": {
+          "title": "Subject Agent Id",
+          "type": "string"
+        },
+        "completed": {
+          "title": "Completed",
+          "type": "boolean"
+        },
+        "delivered": {
+          "title": "Delivered",
+          "type": "boolean"
+        },
+        "ordered": {
+          "title": "Ordered",
+          "type": "boolean"
+        },
+        "schema_valid_rate": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Schema Valid Rate",
+          "type": "number"
+        },
+        "disputed": {
+          "title": "Disputed",
+          "type": "boolean"
+        },
+        "end_to_end_latency_ms": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End To End Latency Ms"
+        },
+        "execution_score": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Execution Score",
+          "type": "number"
+        },
+        "evidence_weight": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Evidence Weight",
+          "type": "number"
+        },
+        "confidence": {
+          "title": "Confidence",
+          "type": "string"
+        },
+        "reputation_eligible": {
+          "title": "Reputation Eligible",
+          "type": "boolean"
+        },
+        "credit_settlement": {
+          "default": "not_evaluated",
+          "title": "Credit Settlement",
+          "type": "string",
+          "const": "not_evaluated"
+        },
+        "provenance_counts": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Provenance Counts",
+          "type": "object"
+        },
+        "evidence_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Ids",
+          "type": "array"
+        },
+        "risk_flags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Risk Flags",
+          "type": "array"
+        }
+      },
+      "required": [
+        "task_id",
+        "subject_agent_id",
+        "completed",
+        "delivered",
+        "ordered",
+        "schema_valid_rate",
+        "disputed",
+        "end_to_end_latency_ms",
+        "execution_score",
+        "evidence_weight",
+        "confidence",
+        "reputation_eligible",
+        "credit_settlement",
+        "provenance_counts",
+        "evidence_ids",
+        "risk_flags"
+      ],
+      "title": "InteractionTraceReport",
+      "type": "object"
+    }
+  }
+}
