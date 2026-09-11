@@ -42,6 +42,8 @@ $env:DASHBOARD_TEST_BASE = 'http://127.0.0.1:8786'
 
 HTTP 检查创建本地演练订单并写入 `docs/guansheng/verification`，不要直接使用正式比赛额度。冲突示例使用 main 的 `conflicting_terminals` 事件，预期57.5分、完成false、信誉资格false；成功98分，失败43分。API和截图属于本地固定输入的实际响应，不证明线上成交或已结算 credits。
 
+Word 手册的页数会随渲染器变化：作者环境为 25 页，LibreOffice QA 为 21 页；验收以内容完整、无裁切和无重叠为准，不以固定页数为准。
+
 ## 接入与提交状态
 
 `/product/catalog.json` 的相对 Schema 可直接解析。Pitch、FAQ和销售规则可读取，Brain 的意图选择与团队签收仍由子洋确认。单笔报告不等于全局信誉，调用方自报不等于平台验证。

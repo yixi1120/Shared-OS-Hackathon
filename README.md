@@ -87,6 +87,16 @@ uv run commerce-api
 ```
 
 The seller API then exposes Swagger documentation at `http://localhost:8000/docs`.
+To run the same-origin product Dashboard against the real local Seller API, use:
+
+```bash
+SELLER_API_TOKEN=local-demo-token uv run python run_dashboard.py
+```
+
+Then open `http://127.0.0.1:8786/dashboard/`. The Dashboard loads fixture *inputs* but
+obtains every displayed report through the live quote, order, and delivery endpoints.
+It does not simulate Arena settlement or upgrade self-reported evidence.
+
 Its temporary service-order sequence is:
 
 1. `GET /v1/catalog`
@@ -185,4 +195,6 @@ contract exists, seller outputs continue to report `credit_settlement=not_evalua
 - `src/sharedos_commerce_agent/operation_journal.py` — durable outbound side-effect journal
 - `src/sharedos_commerce_agent/harness.py` — full offline Arena simulation
 - `src/sharedos_commerce_agent/seller_harness.py` — concurrent seller and soak simulation
+- `dashboard/` and `run_dashboard.py` — live local product Dashboard and same-origin adapter
+- `docs/guansheng/` — machine-readable product materials, schemas, sales copy, and V3 handbook
 - `tests/` — unit and end-to-end coverage

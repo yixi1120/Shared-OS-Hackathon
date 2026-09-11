@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-09-11T07:55:53.645722+00:00",
+  "checked_at": "2026-09-11T10:30:22.977359+00:00",
   "main_base": "3b5b99dad1703b873de5810b9743afce8365cb46",
   "pytest_passed": 91,
   "pytest_warnings": 1,
@@ -9,6 +9,7 @@
   "runtime_modified": false,
   "production_deployed": false,
   "production_identifiers": "pending_yating",
-  "word_pages": 25,
-  "word_visual_review": "All 25 pages reviewed"
+  "word_pages_authoring_environment": 25,
+  "word_pages_libreoffice_qa": 21,
+  "word_visual_review": "All pages reviewed; pagination varies by renderer"
 }
