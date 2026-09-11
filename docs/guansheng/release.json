@@ -1,0 +1,8 @@
+{
+  "base_main": "3b5b99dad1703b873de5810b9743afce8365cb46",
+  "branch": "Guansheng-v3",
+  "scope": "additive Dashboard and product materials only",
+  "known_risk_flags": 14,
+  "production_identifiers": "pending_yating",
+  "runtime_modified": false
+}

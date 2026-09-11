@@ -1,0 +1,113 @@
+{
+  "$defs": {
+    "InteractionEventSubmission": {
+      "description": "Untrusted event payload accepted from an external caller.",
+      "properties": {
+        "task_id": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Task Id",
+          "type": "string"
+        },
+        "subject_agent_id": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Subject Agent Id",
+          "type": "string"
+        },
+        "stage": {
+          "$ref": "#/$defs/InteractionStage"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "title": "Occurred At",
+          "type": "string"
+        },
+        "schema_valid": {
+          "default": true,
+          "title": "Schema Valid",
+          "type": "boolean"
+        },
+        "evidence_id": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Evidence Id"
+        },
+        "request_hash": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Request Hash"
+        },
+        "artifact_hash": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Artifact Hash"
+        }
+      },
+      "required": [
+        "task_id",
+        "subject_agent_id",
+        "stage",
+        "occurred_at"
+      ],
+      "title": "InteractionEventSubmission",
+      "type": "object"
+    },
+    "InteractionStage": {
+      "enum": [
+        "task_created",
+        "request_received",
+        "quote_declared",
+        "task_started",
+        "artifact_delivered",
+        "buyer_acknowledged",
+        "task_completed",
+        "task_failed",
+        "disputed"
+      ],
+      "title": "InteractionStage",
+      "type": "string"
+    }
+  },
+  "description": "Bounded, content-minimized input accepted by both trace services.",
+  "properties": {
+    "events": {
+      "items": {
+        "$ref": "#/$defs/InteractionEventSubmission"
+      },
+      "maxItems": 200,
+      "minItems": 1,
+      "title": "Events",
+      "type": "array"
+    }
+  },
+  "required": [
+    "events"
+  ],
+  "title": "InteractionTraceInput",
+  "type": "object"
+}

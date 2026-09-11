@@ -1,0 +1,28 @@
+{
+  "events": [
+    {
+      "task_id": "task-v1",
+      "subject_agent_id": "subject-v1",
+      "stage": "request_received",
+      "occurred_at": "2026-09-10T00:00:00+00:00",
+      "schema_valid": true,
+      "evidence_id": "e0"
+    },
+    {
+      "task_id": "task-v1",
+      "subject_agent_id": "subject-v1",
+      "stage": "task_started",
+      "occurred_at": "2026-09-10T00:00:01+00:00",
+      "schema_valid": true,
+      "evidence_id": "e1"
+    },
+    {
+      "task_id": "task-v1",
+      "subject_agent_id": "subject-v1",
+      "stage": "task_failed",
+      "occurred_at": "2026-09-10T00:00:04+00:00",
+      "schema_valid": true,
+      "evidence_id": "e2"
+    }
+  ]
+}

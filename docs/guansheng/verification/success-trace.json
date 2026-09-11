@@ -1,0 +1,33 @@
+{
+  "trade_id": "1fc16731-5729-49be-824a-df1237697b88",
+  "status": "delivered",
+  "output": {
+    "task_id": "task-v1",
+    "subject_agent_id": "subject-v1",
+    "completed": true,
+    "delivered": true,
+    "ordered": true,
+    "schema_valid_rate": 1.0,
+    "disputed": false,
+    "end_to_end_latency_ms": 4000,
+    "execution_score": 98.0,
+    "evidence_weight": 0.15,
+    "confidence": "self-reported-single-interaction",
+    "reputation_eligible": false,
+    "credit_settlement": "not_evaluated",
+    "provenance_counts": {
+      "self_reported": 4
+    },
+    "evidence_ids": [
+      "e0",
+      "e1",
+      "e2",
+      "e3"
+    ],
+    "risk_flags": [
+      "evidence_not_reputation_eligible",
+      "weak_evidence_source",
+      "credit_settlement_not_evaluated"
+    ]
+  }
+}

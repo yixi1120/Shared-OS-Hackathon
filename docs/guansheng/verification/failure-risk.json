@@ -1,0 +1,71 @@
+{
+  "trade_id": "0bbbf0b8-d5da-4b17-acbc-907d89b3bebc",
+  "status": "delivered",
+  "output": {
+    "task_id": "task-v1",
+    "subject_agent_id": "subject-v1",
+    "completed": false,
+    "delivered": false,
+    "ordered": true,
+    "schema_valid_rate": 1.0,
+    "disputed": false,
+    "end_to_end_latency_ms": 4000,
+    "execution_score": 43.0,
+    "evidence_weight": 0.15,
+    "confidence": "self-reported-single-interaction",
+    "reputation_eligible": false,
+    "credit_settlement": "not_evaluated",
+    "provenance_counts": {
+      "self_reported": 3
+    },
+    "evidence_ids": [
+      "e0",
+      "e1",
+      "e2"
+    ],
+    "risk_flags": [
+      "artifact_not_delivered",
+      "evidence_not_reputation_eligible",
+      "completion_not_recorded",
+      "task_explicitly_failed",
+      "weak_evidence_source",
+      "credit_settlement_not_evaluated"
+    ],
+    "interpretation": {
+      "meaning": "This score describes the supplied A2A task trace only.",
+      "flags": [
+        {
+          "flag": "artifact_not_delivered",
+          "zh": "未记录交付",
+          "en": "No artifact delivery was recorded; absence is not proof of non-delivery."
+        },
+        {
+          "flag": "evidence_not_reputation_eligible",
+          "zh": "不具备基础纳入资格",
+          "en": "The trace fails the V1 terminal-state and trusted-source gate."
+        },
+        {
+          "flag": "completion_not_recorded",
+          "zh": "未记录完成终态",
+          "en": "No task_completed event was recorded; a failure terminal may still exist."
+        },
+        {
+          "flag": "task_explicitly_failed",
+          "zh": "明确失败",
+          "en": "A task_failed event was recorded; report delivery can still succeed."
+        },
+        {
+          "flag": "weak_evidence_source",
+          "zh": "证据来源较弱",
+          "en": "The weakest source is bilateral or self-reported; execution score is unchanged."
+        },
+        {
+          "flag": "credit_settlement_not_evaluated",
+          "zh": "结算未评估",
+          "en": "No trusted settlement evaluation is attached; declared price is not payment proof."
+        }
+      ],
+      "not_meaning": "It does not verify credit settlement or establish global reputation."
+    }
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "version": "interaction-v1-main-3b5b99d",
+  "flag_count": 14,
+  "flags": [
+    {
+      "flag": "missing_terminal_task_state",
+      "zh": "缺少终态",
+      "en": "No completion or failure state was recorded."
+    },
+    {
+      "flag": "artifact_not_delivered",
+      "zh": "未记录交付",
+      "en": "No artifact delivery was recorded; absence is not proof of non-delivery."
+    },
+    {
+      "flag": "invalid_stage_order",
+      "zh": "阶段乱序",
+      "en": "Timestamp-ordered events regress in lifecycle stage."
+    },
+    {
+      "flag": "schema_validation_failure",
+      "zh": "schema 不合规",
+      "en": "At least one submitted event declares schema_valid=false."
+    },
+    {
+      "flag": "interaction_disputed",
+      "zh": "存在争议",
+      "en": "A dispute was recorded; the report does not adjudicate it."
+    },
+    {
+      "flag": "conflicting_terminal_task_state",
+      "zh": "终态冲突",
+      "en": "Both task_completed and task_failed were recorded; the task is not treated as completed or reputation-eligible."
+    },
+    {
+      "flag": "evidence_not_reputation_eligible",
+      "zh": "不具备基础纳入资格",
+      "en": "The trace fails the V1 terminal-state and trusted-source gate."
+    },
+    {
+      "flag": "task_start_not_recorded",
+      "zh": "未记录开始",
+      "en": "No task_started event was recorded."
+    },
+    {
+      "flag": "completion_not_recorded",
+      "zh": "未记录完成终态",
+      "en": "No task_completed event was recorded; a failure terminal may still exist."
+    },
+    {
+      "flag": "task_explicitly_failed",
+      "zh": "明确失败",
+      "en": "A task_failed event was recorded; report delivery can still succeed."
+    },
+    {
+      "flag": "latency_not_computable",
+      "zh": "延迟无法计算",
+      "en": "The trace lacks a request/start or completion/failure timestamp."
+    },
+    {
+      "flag": "evidence_reference_missing",
+      "zh": "证据引用缺失",
+      "en": "At least one event has no non-empty evidence reference; references are not verified here."
+    },
+    {
+      "flag": "weak_evidence_source",
+      "zh": "证据来源较弱",
+      "en": "The weakest source is bilateral or self-reported; execution score is unchanged."
+    },
+    {
+      "flag": "credit_settlement_not_evaluated",
+      "zh": "结算未评估",
+      "en": "No trusted settlement evaluation is attached; declared price is not payment proof."
+    }
+  ],
+  "unknown_flag_policy": "Preserve and display unknown values; do not discard report."
+}

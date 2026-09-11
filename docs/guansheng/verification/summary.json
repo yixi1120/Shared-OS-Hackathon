@@ -1,0 +1,14 @@
+{
+  "checked_at": "2026-09-11T07:55:53.645722+00:00",
+  "main_base": "3b5b99dad1703b873de5810b9743afce8365cb46",
+  "pytest_passed": 91,
+  "pytest_warnings": 1,
+  "http_contract_checks": 39,
+  "browser_checks": 8,
+  "known_risk_flags": 14,
+  "runtime_modified": false,
+  "production_deployed": false,
+  "production_identifiers": "pending_yating",
+  "word_pages": 25,
+  "word_visual_review": "All 25 pages reviewed"
+}
