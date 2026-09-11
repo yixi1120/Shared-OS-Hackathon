@@ -1,3 +1,5 @@
+> 当前单次报告规则与产品边界以 [思棋 V1 冻结规范](docs/siqi/INTERACTION_REPORT_V1.md) 为准；[核查与交接](docs/siqi/AUDIT_AND_HANDOFF.md) 列出本文件中的历史规划冲突。Reputation Snapshot 尚未提供，不对外出售；新价格已确认并在本地实现，见[定价政策](docs/siqi/PRICING_DECISION.md)。
+
 # 官方 Office Hour 与当前方案冲突检查
 
 > 日期：2026-09-10  
@@ -40,7 +42,7 @@
 |---|---|---|
 | Round 1 体验并评价其他产品 | 已实现真实调用、证据记录、Critique 和 Ranking | 一致 |
 | Round 2 使用 100 credits 消费 | 已按 100 credits 生成购买计划 | 一致 |
-| 产品从第一天考虑收费 | Interaction Trace 和 Risk Report 已有 6/8 credits 定价 | 基本一致 |
+| 产品从第一天考虑收费 | Interaction Trace 和 Risk Report 当前统一为 6 credits，底价 5 | 基本一致 |
 | 产品可以被 Agent 调用 | 已有机器可读 API 和结构化输出 | 基本一致，最终入口仍需简化 |
 | 一个 Agent 可提供多个产品/服务 | 当前提供两个主要服务 | 一致 |
 | 竞技期间无需人工操作 | LangGraph、checkpoint、幂等恢复和 Harness 已实现 | 一致 |
@@ -288,4 +290,3 @@ LangGraph 的策略、状态和 Harness 不依赖具体传输协议，因此不�
 5. 没有 Arena 官方回执时，不声称付款成功。
 6. 部署方案必须能够证明 SharedOS 使用记录和 audit trail。
 7. 按更早截止时间和更严格规则准备。
-

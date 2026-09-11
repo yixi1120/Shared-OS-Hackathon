@@ -61,7 +61,7 @@ def test_observed_trace_is_reputation_eligible() -> None:
     assert report.evidence_weight == 0.9
     assert report.reputation_eligible is True
     assert report.credit_settlement == "not_evaluated"
-    assert report.risk_flags == []
+    assert report.risk_flags == ["evidence_reference_missing", "credit_settlement_not_evaluated"]
 
 
 def test_perfect_self_report_cannot_become_reputation_evidence() -> None:
@@ -95,4 +95,8 @@ def test_failed_or_malformed_trace_exposes_objective_risk_flags() -> None:
         "artifact_not_delivered",
         "invalid_stage_order",
         "schema_validation_failure",
+        "completion_not_recorded",
+        "task_explicitly_failed",
+        "evidence_reference_missing",
+        "credit_settlement_not_evaluated",
     }

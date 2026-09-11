@@ -6,7 +6,7 @@ from sharedos_commerce_agent.strategy import ComplianceError, MarketStrategy, Pr
 
 
 def test_quote_and_negotiation_respect_floor() -> None:
-    policy = PricingPolicy(base_price=12)
+    policy = PricingPolicy()
     quote = policy.quote(
         QuoteRequest(
             buyer_id="buyer", service_id="a2a-interaction-trace", budget=50

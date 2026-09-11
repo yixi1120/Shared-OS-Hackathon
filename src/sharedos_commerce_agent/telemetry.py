@@ -54,7 +54,10 @@ def evaluate_interaction_trace(
     ordered = stage_positions == sorted(stage_positions)
     stages = {event.stage for event in events}
     delivered = InteractionStage.ARTIFACT_DELIVERED in stages
-    completed = delivered and InteractionStage.TASK_COMPLETED in stages
+    has_completed = InteractionStage.TASK_COMPLETED in stages
+    has_failed = InteractionStage.TASK_FAILED in stages
+    conflicting_terminals = has_completed and has_failed
+    completed = delivered and has_completed and not has_failed
     terminal = bool(
         {InteractionStage.TASK_COMPLETED, InteractionStage.TASK_FAILED} & stages
     )
@@ -94,7 +97,7 @@ def evaluate_interaction_trace(
         key=lambda provenance: _PROVENANCE_WEIGHT[provenance],
     )
     trusted_sources = {EvidenceProvenance.PLATFORM, EvidenceProvenance.OBSERVED}
-    reputation_eligible = terminal and all(
+    reputation_eligible = terminal and not conflicting_terminals and all(
         event.provenance in trusted_sources for event in events
     )
     provenance_counts = Counter(event.provenance.value for event in events)
@@ -110,8 +113,25 @@ def evaluate_interaction_trace(
         risk_flags.append("schema_validation_failure")
     if disputed:
         risk_flags.append("interaction_disputed")
+    if conflicting_terminals:
+        risk_flags.append("conflicting_terminal_task_state")
     if not reputation_eligible:
         risk_flags.append("evidence_not_reputation_eligible")
+
+    # Additive V1 diagnostics; never modify the compatible score or eligibility.
+    if InteractionStage.TASK_STARTED not in stages:
+        risk_flags.append("task_start_not_recorded")
+    if InteractionStage.TASK_COMPLETED not in stages:
+        risk_flags.append("completion_not_recorded")
+    if InteractionStage.TASK_FAILED in stages:
+        risk_flags.append("task_explicitly_failed")
+    if latency_ms is None:
+        risk_flags.append("latency_not_computable")
+    if any(not event.evidence_id for event in events):
+        risk_flags.append("evidence_reference_missing")
+    if _PROVENANCE_WEIGHT[weakest_provenance] < 0.9:
+        risk_flags.append("weak_evidence_source")
+    risk_flags.append("credit_settlement_not_evaluated")
 
     return InteractionTraceReport(
         task_id=next(iter(task_ids)),

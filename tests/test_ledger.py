@@ -5,6 +5,7 @@ import pytest
 
 def test_ledger_is_idempotent() -> None:
     ledger = Ledger(":memory:")
+    assert ledger.has_buyer("buyer-a") is False
     first = ledger.record(
         TradeReceipt(
             buyer_id="buyer-a",
@@ -26,6 +27,8 @@ def test_ledger_is_idempotent() -> None:
 
     assert first.trade_id == second.trade_id
     assert len(ledger.list()) == 1
+    assert ledger.has_buyer("buyer-a") is True
+    assert ledger.has_buyer("buyer-b") is False
     updated = ledger.update_status(first.trade_id, OrderStatus.DELIVERED)
     assert updated.status is OrderStatus.DELIVERED
 

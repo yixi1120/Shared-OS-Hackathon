@@ -21,54 +21,57 @@ class ComplianceError(RuntimeError):
     """Raised when a proposed Arena action plan would violate a hard rule."""
 
 
+class InsufficientBudget(ValueError):
+    """No deliverable can be quoted within the declared budget."""
+
+
 @dataclass(frozen=True, slots=True)
 class PricingPolicy:
-    base_price: int = 12
-    floor_ratio: float = 0.72
+    base_price: int = 6
+    floor_price: int = 5
     first_purchase_discount: float = 0.10
-    max_price: int = 40
+    version: str = "arena-fixed-v1"
 
     def quote(self, request: QuoteRequest, *, first_purchase: bool) -> Quote:
-        risk_multiplier = 1.0 + max(0.0, 0.6 - request.buyer_reputation) * 0.25
-        raw = self.base_price * request.complexity * request.urgency * risk_multiplier
-        if first_purchase:
-            raw *= 1.0 - self.first_purchase_discount
-        ask = max(1, min(self.max_price, math.ceil(raw)))
-        floor = max(1, min(ask, math.ceil(ask * self.floor_ratio)))
+        if request.budget < self.floor_price:
+            raise InsufficientBudget("insufficient_budget")
+        raw = self.base_price * (1 - self.first_purchase_discount if first_purchase else 1)
+        ask = min(request.budget, max(self.floor_price, math.ceil(raw)))
         return Quote(
             buyer_id=request.buyer_id,
             service_id=request.service_id,
             ask_price=ask,
-            reservation_price=floor,
+            reservation_price=self.floor_price,
+            budget=request.budget,
+            pricing_policy_version=self.version,
             pitch=(
-                f"For {ask} credits, we evaluate a structured A2A task trace and return "
-                "execution evidence, provenance confidence, and risk flags."
+                f"For {ask} credits, we evaluate one structured A2A task trace and return "
+                "execution metrics, provenance confidence, and risk flags. "
+                "Risk Report adds explanations of the same metrics. "
+                "Public submissions remain self-reported; settlement is not evaluated."
             ),
             expires_at=utc_now() + timedelta(minutes=10),
         )
 
-    def negotiate(self, quote: Quote, buyer_offer: int) -> NegotiationDecision:
+    def negotiate(self, quote: Quote, buyer_offer: int, *, prior_low_offers: int = 0) -> NegotiationDecision:
+        # The quote owns its price terms, so policy changes cannot reprice it.
         if buyer_offer >= quote.ask_price:
-            return NegotiationDecision(
-                accepted=True,
-                final_price=quote.ask_price,
-                message="Accepted at the quoted price.",
-            )
+            return NegotiationDecision(accepted=True, final_price=quote.ask_price,
+                                       message="Accepted at the quoted price.")
         if buyer_offer >= quote.reservation_price:
-            return NegotiationDecision(
-                accepted=True,
-                final_price=buyer_offer,
-                message="Accepted to close quickly and establish a trading history.",
-            )
-        counter = max(quote.reservation_price, math.ceil((quote.ask_price + buyer_offer) / 2))
-        return NegotiationDecision(
-            accepted=False,
-            counter_price=counter,
-            message=(
-                f"We cannot deliver reliably at {buyer_offer}; {counter} credits is "
-                "our best counteroffer with the full deliverable and receipt."
-            ),
-        )
+            return NegotiationDecision(accepted=True, final_price=buyer_offer,
+                                       message="Accepted within the quoted price terms.")
+        if quote.pricing_policy_version == "legacy-v1":
+            counter = max(quote.reservation_price, math.ceil((quote.ask_price + buyer_offer) / 2))
+        else:
+            if prior_low_offers >= 1:
+                return NegotiationDecision(accepted=False, message="Negotiation closed: offer remains below the quoted floor.")
+            counter = quote.reservation_price
+        return NegotiationDecision(accepted=False, counter_price=counter,
+                                   message=f"Our minimum for this quote is {counter} credits.")
+
+
+DEFAULT_PRICING_POLICY = PricingPolicy()
 
 
 class CritiqueStrategy:

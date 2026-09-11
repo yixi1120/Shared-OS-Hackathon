@@ -1,3 +1,5 @@
+> 当前单次报告规则与产品边界以 [思棋 V1 冻结规范](docs/siqi/INTERACTION_REPORT_V1.md) 为准；[核查与交接](docs/siqi/AUDIT_AND_HANDOFF.md) 列出本文件中的历史规划冲突。Reputation Snapshot 尚未提供，不对外出售；新价格已确认并在本地实现，见[定价政策](docs/siqi/PRICING_DECISION.md)。
+
 # SharedOS Hackathon 四人分工与交付计划
 
 > 版本：根据官方 Arena 形式重新校准  

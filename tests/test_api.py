@@ -158,3 +158,45 @@ def test_order_input_rejects_mixed_tasks_before_it_is_persisted() -> None:
     )
 
     assert response.status_code == 422
+
+
+def test_order_input_rejects_naive_timestamp_before_it_is_persisted() -> None:
+    client = TestClient(create_app(Settings(ledger_path=":memory:")))
+    quote = client.post(
+        "/v1/quotes",
+        json={
+            "buyer_id": "buyer-one",
+            "service_id": "a2a-interaction-trace",
+            "budget": 30,
+        },
+    ).json()
+
+    response = client.post(
+        "/v1/orders",
+        json={
+            "quote_id": quote["quote_id"],
+            "buyer_id": "buyer-one",
+            "service_id": "a2a-interaction-trace",
+            "amount": quote["ask_price"],
+            "idempotency_key": "naive-timestamp-request",
+            "input": {
+                "events": [
+                    {
+                        "task_id": "task-one",
+                        "subject_agent_id": "seller-one",
+                        "stage": "request_received",
+                        "occurred_at": "2026-09-10T01:00:00",
+                    },
+                    {
+                        "task_id": "task-one",
+                        "subject_agent_id": "seller-one",
+                        "stage": "task_completed",
+                        "occurred_at": "2026-09-10T01:00:01Z",
+                    },
+                ]
+            },
+        },
+    )
+
+    assert response.status_code == 422
+    assert "timezone offset" in response.text

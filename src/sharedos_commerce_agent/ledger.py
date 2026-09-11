@@ -52,6 +52,9 @@ class Ledger:
                 )
                 """
             )
+            connection.execute(
+                "CREATE INDEX IF NOT EXISTS idx_trades_buyer_id ON trades(buyer_id)"
+            )
 
     def record(self, receipt: TradeReceipt, *, idempotency_key: str) -> TradeReceipt:
         with self._connect() as connection:
@@ -116,6 +119,13 @@ class Ledger:
                 "SELECT * FROM trades WHERE trade_id = ?", (trade_id,)
             ).fetchone()
             return self._from_row(row) if row else None
+
+    def has_buyer(self, buyer_id: str) -> bool:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT 1 FROM trades WHERE buyer_id = ? LIMIT 1", (buyer_id,)
+            ).fetchone()
+            return row is not None
 
     def list(self) -> list[TradeReceipt]:
         with self._connect() as connection:

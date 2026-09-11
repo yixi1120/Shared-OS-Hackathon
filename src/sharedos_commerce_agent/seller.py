@@ -15,7 +15,8 @@ from .models import (
     ServiceListing,
     TradeReceipt,
 )
-from .strategy import PricingPolicy
+from .risk_rules import interpret_risks
+from .strategy import DEFAULT_PRICING_POLICY, PricingPolicy
 from .telemetry import evaluate_interaction_trace
 
 
@@ -31,7 +32,7 @@ CATALOG = [
             "Evaluates structured A2A task lifecycle evidence and reports execution quality, "
             "provenance confidence, and machine-readable risk flags without claiming payment."
         ),
-        price=6,
+        price=DEFAULT_PRICING_POLICY.base_price,
         tags=["a2a", "task", "telemetry", "reputation", "verification"],
         evidence=["task state", "artifact delivery", "latency", "schema validity"],
         reputation=0.8,
@@ -44,7 +45,7 @@ CATALOG = [
             "Explains objective risk flags in an A2A interaction trace and separates "
             "execution quality from evidence confidence."
         ),
-        price=8,
+        price=DEFAULT_PRICING_POLICY.base_price,
         tags=["a2a", "task", "risk", "evidence"],
         evidence=["machine-readable flags", "score breakdown", "sample-size disclosure"],
         reputation=0.78,
@@ -55,15 +56,13 @@ CATALOG = [
 class SellerService:
     def __init__(self, ledger: Ledger, pricing: PricingPolicy | None = None) -> None:
         self.ledger = ledger
-        self.pricing = pricing or PricingPolicy()
+        self.pricing = pricing or DEFAULT_PRICING_POLICY
 
     def catalog(self) -> list[ServiceListing]:
-        return CATALOG
+        return [item.model_copy(update={"price": self.pricing.base_price}) for item in CATALOG]
 
     def quote(self, request: QuoteRequest) -> Quote:
-        first_purchase = not any(
-            receipt.buyer_id == request.buyer_id for receipt in self.ledger.list()
-        )
+        first_purchase = not self.ledger.has_buyer(request.buyer_id)
         return self.pricing.quote(request, first_purchase=first_purchase)
 
     def accept_order(
@@ -112,6 +111,7 @@ class SellerService:
         if receipt.service_id == "a2a-interaction-risk-report":
             output["interpretation"] = {
                 "meaning": "This score describes the supplied A2A task trace only.",
+                "flags": interpret_risks(report.risk_flags),
                 "not_meaning": (
                     "It does not verify credit settlement or establish global reputation."
                 ),

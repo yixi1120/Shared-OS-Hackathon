@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from hmac import compare_digest
+from threading import RLock
 from typing import Annotated, Any
 
 import uvicorn
@@ -18,6 +19,7 @@ from .models import (
     TradeReceipt,
 )
 from .seller import SellerService
+from .strategy import InsufficientBudget
 
 
 class NegotiationRequest(BaseModel):
@@ -38,6 +40,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     seller = SellerService(Ledger(active_settings.ledger_path))
     quotes: dict[str, Quote] = {}
     agreed_prices: dict[str, int] = {}
+    low_offers: dict[str, int] = {}
+    closed_negotiations: set[str] = set()
+    negotiation_lock = RLock()
 
     def require_seller_auth(
         authorization: Annotated[str | None, Header()] = None,
@@ -84,7 +89,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def create_quote(request: QuoteRequest) -> Quote:
         if request.service_id not in {item.service_id for item in seller.catalog()}:
             raise HTTPException(status_code=404, detail="Unknown service")
-        quote = seller.quote(request)
+        try:
+            quote = seller.quote(request)
+        except InsufficientBudget as exc:
+            raise HTTPException(status_code=409, detail="insufficient_budget") from exc
         quotes[quote.quote_id] = quote
         return quote
 
@@ -99,10 +107,22 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             raise HTTPException(status_code=404, detail="Unknown quote")
         if quote.expires_at <= datetime.now(timezone.utc):
             raise HTTPException(status_code=410, detail="Quote expired")
-        decision = seller.pricing.negotiate(quote, request.buyer_offer)
-        if decision.accepted and decision.final_price is not None:
-            agreed_prices[quote_id] = decision.final_price
-        return decision
+        with negotiation_lock:
+            if quote_id in closed_negotiations:
+                return NegotiationDecision(accepted=False, message="Negotiation closed; request a new quote.")
+            if quote_id in agreed_prices:
+                return NegotiationDecision(accepted=True, final_price=agreed_prices[quote_id],
+                                           message="Previously agreed price remains binding.")
+            decision = seller.pricing.negotiate(
+                quote, request.buyer_offer, prior_low_offers=low_offers.get(quote_id, 0)
+            )
+            if decision.accepted and decision.final_price is not None:
+                agreed_prices[quote_id] = decision.final_price
+            elif request.buyer_offer < quote.reservation_price:
+                low_offers[quote_id] = low_offers.get(quote_id, 0) + 1
+                if decision.counter_price is None:
+                    closed_negotiations.add(quote_id)
+            return decision
 
     @app.post(
         "/v1/orders",
@@ -117,7 +137,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             raise HTTPException(status_code=410, detail="Quote expired")
         if request.buyer_id != quote.buyer_id or request.service_id != quote.service_id:
             raise HTTPException(status_code=409, detail="Order does not match quote")
-        expected_price = agreed_prices.get(request.quote_id, quote.ask_price)
+        with negotiation_lock:
+            if request.quote_id in closed_negotiations:
+                raise HTTPException(status_code=409, detail="Negotiation closed; request a new quote")
+            expected_price = agreed_prices.get(request.quote_id, quote.ask_price)
         if request.amount != expected_price:
             raise HTTPException(
                 status_code=409,

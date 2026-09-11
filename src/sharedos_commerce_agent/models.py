@@ -5,7 +5,7 @@ from enum import Enum
 from typing import Any
 from uuid import uuid4
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 def utc_now() -> datetime:
@@ -97,11 +97,15 @@ class Quote(BaseModel):
     reservation_price: int = Field(ge=1, le=100)
     pitch: str
     expires_at: datetime
+    budget: int | None = Field(default=None, ge=0, le=100)
+    pricing_policy_version: str = "legacy-v1"
 
     @model_validator(mode="after")
     def floor_does_not_exceed_ask(self) -> "Quote":
         if self.reservation_price > self.ask_price:
             raise ValueError("reservation_price cannot exceed ask_price")
+        if self.budget is not None and self.ask_price > self.budget:
+            raise ValueError("ask_price cannot exceed budget")
         return self
 
 
@@ -190,6 +194,13 @@ class InteractionEventSubmission(BaseModel):
     evidence_id: str | None = Field(default=None, max_length=256)
     request_hash: str | None = Field(default=None, max_length=256)
     artifact_hash: str | None = Field(default=None, max_length=256)
+
+    @field_validator("occurred_at")
+    @classmethod
+    def require_timezone_offset(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("occurred_at must include a timezone offset")
+        return value.astimezone(timezone.utc)
 
 
 class InteractionTraceInput(BaseModel):

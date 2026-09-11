@@ -1,3 +1,5 @@
+> 当前单次报告规则与产品边界以 [思棋 V1 冻结规范](siqi/INTERACTION_REPORT_V1.md) 为准；[核查与交接](siqi/AUDIT_AND_HANDOFF.md) 列出本文件中的历史规划冲突。Reputation Snapshot 尚未提供，不对外出售；新价格已确认并在本地实现，见[定价政策](siqi/PRICING_DECISION.md)。
+
 # 子洋的 Agent Brain 实战手册
 
 这不是一份只用于阅读的 LangGraph 教程。每一章都直接对应 SharedOS Hackathon 中子洋负责的 Agent Brain、Arena Strategy 和 Harness Engineering 交付物。
@@ -367,7 +369,7 @@ report
 - [x] 条件路由
 - [x] Critique / Market / Full 三种运行模式
 - [x] State 可携带上一轮 `progress`
-- [x] 12 个确定性 Harness 场景
+- [x] 14 个确定性 Harness 场景
 - [x] Round 1 服务探测受控并发
 - [x] 错误价格检测
 - [x] API 超时检测
@@ -382,7 +384,7 @@ report
 - [x] Critique / ranking 副作用幂等键
 - [x] 成功但 acknowledgement 丢失的三类故障场景
 - [x] Seller 并发 Harness
-- [ ] 两小时 Soak Harness
+- [x] 两小时 Soak Harness（32,272 笔全部 delivered；详见 [SOAK_TEST_REPORT](SOAK_TEST_REPORT.md)）
 - [x] Persona 与多随机种子实验
 - [ ] 真实 SharedNet contract test
 
