@@ -15,6 +15,11 @@ class SalesPolicy:
     """Deterministic product introduction and critique-defense content."""
 
     _KEYWORDS = (
+        ("failure", ("no artifact", "missing artifact", "service failed", "service failure", "没有artifact", "没有 artifact", "缺少artifact", "服务失败")),
+        ("cold_start", ("cold start", "no history", "冷启动", "没有历史")),
+        ("gaming", ("gaming", "fake events", "刷分", "伪造事件")),
+        ("risk_difference", ("same price", "同价", "一样贵")),
+        ("free_auth", ("what is free", "free quote", "哪些免费", "免费报价")),
         (
             "score_change",
             (

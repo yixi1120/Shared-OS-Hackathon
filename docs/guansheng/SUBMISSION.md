@@ -1,95 +1,29 @@
-## 十三 最终产品介绍与提交正文
+# A2A Interaction Intelligence submission 文案
 
-### 1 中文产品介绍
+本稿是产品内容定稿。Discord 用户名与提交频道已由用户确认并写入 submission.json；其余官方身份与线上信息尚未交付，按用户要求暂缓正式提交。全部待填信息仅保存在同目录 submission.json；本文件不复制待填表格，也不用演练身份替代。
 
-A2A Interaction Intelligence 面向需要理解任务执行记录的Agent。调用方提交同一任务的结构化生命周期事件，服务返回完成、交付、顺序、时延、schema结果、执行得分、证据来源置信度和风险标记。我们将“记录描述了怎样的执行表现”和“记录来自多可信的来源”分开呈现，帮助调用方决定下一步应继续执行、排查问题还是索取更强证据。
+## 产品介绍
 
-当前两项服务为A2A Interaction Trace和A2A Interaction Risk Report，后者增加适用范围和逐项中英文风险解释，两项服务常规价均为6 credits、底价5。公共事件上报统一视为单方自报，不构成平台验证；服务不评估Arena credits结算，也不把一笔任务记录包装成全局信誉。长期的跨任务信誉网络，需要更多符合资格的可信证据后再建设。
+A2A Interaction Intelligence provides A2A Interaction Trace and A2A Interaction Risk Report for one task at 6 credits each, floor 5; catalog, health checks, schemas, samples and quotes are free.
 
-免费入口包括健康检查、机器可读服务目录、输入输出合同、示例和报价说明。正式生成A2A Interaction Trace或A2A Interaction Risk Report属于付费服务。报价与本地订单只记录服务工作流；Arena credits由官方房间机制处理。
+We analyze one A2A task from structured events. Trace returns execution metrics, evidence provenance and risk flags. Risk adds bilingual interpretation.flags so another Agent can interpret each diagnostic. Both reports cost 6 credits each, with a floor of 5. Catalog, health checks, schemas, sample inputs and quotes are free. Free quotes may still require configured authentication. Sample inputs are free; generating their reports follows the paid report workflow.
 
-### 2 Devpost英文正文
+Agents can read the machine catalog and referenced input/output schemas, request a quote, submit an order with the accepted amount and event input, then request delivery and read the order. No human web browsing is required. The Dashboard is for debugging and evidence capture; Arena operation does not depend on a human demonstration.
 
-Project name
+Public inputs remain self-reported. A single task report is not global reputation or platform verification. A local order and delivered report are not evidence that credits settled; credit_settlement remains not_evaluated.
 
-A2A Interaction Intelligence
+## 服务及证据
 
-Tagline
+- a2a-interaction-trace：6 credits，底价5。供 Agent 检查单次执行与证据缺口。
+- a2a-interaction-risk-report：6 credits，底价5。增加逐项中英文解释，辅助评估本次任务风险。
+- GitHub：https://github.com/yixi1120/Shared-OS-Hackathon
+- 机器入口：catalog.json、input.schema.json、trace_delivery.schema.json、risk_delivery.schema.json。
+- 实际 API 截图：verification/success.png、failure.png、conflict.png、unauthorized.png、free-quote.png。
+- 备用录屏：media/A2A_Interaction_Intelligence_Backup.webm。仅为本地真实 API 演练，无线上交易证明。
+- 演示脚本：DEMO_SCRIPT.md。最终检查：FINAL_CHECKLIST.md。
 
-Understand one agent task through execution metrics, evidence confidence, and explicit limits.
+## 正式提交步骤
 
-Inspiration
+雅婷确认信息后，仅更新 submission.json 并执行 check_submission.py；通过字段检查后再把该文件中的真实值加入最终发送内容。使用 submission.json 中用户确认的 Discord submission 频道，再发送完整介绍及材料。保留真实消息链接与提交时间到 submission.json。字段齐全与实际发送是两个独立条件，不能把本地校验通过写成已提交。
 
-Agents need more than a persuasive service description after a task. They need a compact account of what was reported, whether an artifact and terminal state were present, and how much confidence the evidence source supports. We focus on explaining one interaction before attempting broader reputation claims.
-
-What it does
-
-Our service turns structured A2A lifecycle events into a machine-readable interaction report. It separates execution indicators from provenance confidence and includes evidence references and risk flags. A2A Interaction Trace provides the report. A2A Interaction Risk Report adds scope boundaries and bilingual explanations for each actual risk flag in interpretation.flags. Both services normally quote 6 credits, with a floor of 5. Caller-submitted events stay self-reported, and credit settlement is not evaluated.
-
-Health checks, service discovery, schemas, examples, and pricing explanations are free. Generating either formal report is paid. The local quote and order flow tracks service delivery and idempotency; it is not an Arena credit-settlement system.
-
-How it works
-
-A caller selects a service, requests a quote, submits an order with a stable idempotency key and task events, and retrieves the report. The input covers one task and one subject agent, with a maximum of 200 events. The normal input uses metadata, evidence references, and optional hashes instead of raw prompts or full artifacts. Deterministic code calculates execution metrics and source confidence; commercial negotiation does not alter the result.
-
-Why another agent would use it
-
-The report gives another agent a consistent structure for task review, debugging, and evidence follow-up. It can distinguish a delivered analysis from an underlying task that failed. It can also show a strong-looking execution record with weak source confidence, reducing the risk that a single score is mistaken for global trust.
-
-Current integration status
-
-The current implementation has been exercised locally for successful task analysis, failed-task analysis, and a configured bearer-token rejection. These demonstrations do not establish live SharedNet reachability, SharedOS grant enforcement, or Arena credit settlement. The production deployment identifiers and audit evidence must be supplied before those capabilities are claimed.
-
-What is next
-
-We plan to connect trusted event ingestion and, when sufficient eligible evidence exists, build multi-interaction reputation views with sample size, provenance, and confidence. That future network is not part of the current single-interaction purchase.
-
-### 3 可提交的服务清单段落
-
-A2A Interaction Trace — Submit 1–200 lifecycle events for one task and one subject agent using the InteractionTraceInput schema. Receive completion, delivery, ordering, schema validity, reported latency, execution score, evidence weight, confidence, reputation eligibility, evidence references, and risk flags. Public submissions remain self-reported and credit settlement is not evaluated. Regular and first-purchase quote: 6 credits; floor: 5. A budget of 5 receives a 5-credit quote. Use the valid runtime quote and accepted final_price. SharedNet call: [填写真实节点与调用方式]. Delivery commitment: [填写已验证且不超过300秒的时限].
-
-A2A Interaction Risk Report — Uses the same task input and report fields, with interpretation.meaning, interpretation.not_meaning and interpretation.flags containing per-flag Chinese and English explanations. The score describes the supplied task and neither verifies settlement nor establishes global reputation. It does not add a separate risk model. Regular and first-purchase quote: 6 credits; floor: 5. Use the valid runtime quote and accepted final_price. SharedNet call: [填写真实调用方式]. Only list this service when its additional explanation is useful to the buyer.
-
-## 十四 提交标识核对与最终检查
-
-### 1 必填标识检查结果
-
-| 提交字段 | 当前应填写的值或状态 |
-|---|---|
-| 队长Discord username | yixi1120_19547（display name: yixi1120） |
-| Discord提交入口 | AICOO → SHAREDOS HACKATHON → #submission；https://discord.com/channels/1507115506682040440/1547362093592743936 |
-| 个人Agent SharedNet node ID | 待提供真实节点ID |
-| 服务调用地址与方式 | 待提供真实SharedNet入口 不能用localhost代替 |
-| SharedOS purpose string | 待提供实际审计可检索值 |
-| 产品Agent地址 | 待提供实际地址列表 |
-| 仓库链接 | https://github.com/yixi1120/Shared-OS-Hackathon |
-| 文稿采用的代码版本 | main 67037c8 已完成冠盛V3集成 |
-| 冠盛交付包 | Guansheng V3 已合入main |
-
-上述未填写项不能通过猜测补齐。提交正文已经留出准确字段位置，但现阶段不能勾选“标识全部写入”。取得真实值后逐项填写，并核对节点、服务目录、审计与视频中的标识一致。
-
-### 2 冠盛最终提交检查表
-
-□ 产品名称与最新service_id一致，废弃的旧服务名已经清除。
-
-□ 服务清单可让Agent仅凭目录理解输入、输出、价格和购买顺序。
-
-☑ 本地目录与Runtime已对齐思棋最终价格，首购无整数额外优惠；雅婷的线上部署确认仍待完成。
-
-□ 队长Discord、node ID、purpose、产品Agent地址及真实调用方式已经填写并核验。
-
-□ 报告始终区分执行分、来源置信度、信誉资格和结算状态。
-
-□ 所有宣传承诺有实际Runtime输出或线上运行证据支撑。
-
-□ 子洋已签收销售和FAQ规则，雅婷已签收承诺矩阵。
-
-☑ Dashboard源码随包交付，并通过本地真实API链路验证；线上地址与部署由雅婷确认后补入。
-
-□ 成功、失败与未授权例的证据已保存；平台授权例有真实审计。
-
-□ 正式视频不超过2分钟，备用文件可播放，Arena不依赖人工演示。
-
-□ 比赛日期、缺失规则及有效credits口径已按最终公告确认。
-
-□ 在真实截止时间前提交并保存平台回执。
+比赛主页 https://www.sharedos.ai/weekly-hackathon 在2026年9月12日检查时同时出现 MentorMates 与 Devpost 提交入口；用户要求 Discord 指定 submission 环节。以主办方明确通知核对入口，当前不臆定频道或已完成提交。

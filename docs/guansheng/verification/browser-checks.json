@@ -1,6 +1,7 @@
 {
-  "checked_at": "2026-09-11T07:54:16.674Z",
+  "checked_at": "2026-09-12T03:18:05.974Z",
   "checks": [
+    "free quote 6 floor5 without order",
     "success real quote/order/deliver/read and score 98",
     "failure real quote/order/deliver/read and score 43",
     "conflict real quote/order/deliver/read and score 57.5",

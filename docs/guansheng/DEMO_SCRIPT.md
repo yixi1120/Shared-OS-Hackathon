@@ -1,24 +1,15 @@
-## 十五 简短 Demo Script 与备用录屏脚本
+# 备用演示脚本
 
-### 1 九十秒主讲稿
+录屏为本地真实 API 操作，固定事件输入由 Runtime 计算。全程标注本地演练，非线上成交。无配音字幕成片96秒，以下为约90秒脚本加实际操作转场；无需在 Arena 当晚人工播放。
 
-0至12秒，展示目录与服务名。讲稿：“Agents need to understand what happened in a task and how strong the supporting evidence is. Our product keeps those two questions separate.”
+1. 0至15秒：展示目录与免费付费说明。读20秒介绍时可使用 introduction.json 的英文40词版本，按正常语速约16秒。
+2. 15至27秒：点击仅免费询价，展示 ask_price=6、reservation_price=5，以及未创建订单提示。询价免费不等于无需认证。
+3. 27至43秒：载入成功事件，下单交付。展示98分、证据权重0.15，以及结算 not_evaluated。内层完成表示样例任务状态，外层 delivered 表示分析报告交付。
+4. 43至57秒：载入失败事件。展示43分和缺少 Artifact 的风险解释。这是分析服务正常交付失败任务的报告；缺少记录不证明现实世界未交付。
+5. 57至72秒：载入终态冲突事件。展示57.5分、completed=false 和 conflicting_terminal_task_state；全部14项已知标记都有对应解释。
+6. 72至85秒：测试无凭据访问，展示401及旧结果清空。仅证明本地配置认证生效，不声称完成 SharedNet capability 校验。
+7. 85至90秒：强调 API 可由 Agent 自主调用；报告不等于全局信誉、平台认证或到账证明。
 
-12至25秒，展示输入字段。讲稿：“The caller sends lifecycle metadata and evidence references for one task. Raw prompts and full artifacts are not required. Public submissions remain self-reported.”
+## 复现
 
-25至45秒，展示成功例。讲稿：“This local example produces an execution score of 98. Its evidence weight is still 0.15, and the report is not eligible for reputation. A high execution score does not make weak evidence independently verified.”
-
-45至60秒，展示失败任务。讲稿：“The analysis is delivered successfully, but the underlying task has no recorded artifact delivery. The report makes that distinction explicit.”
-
-60至72秒，展示401例。讲稿：“With the ingress token configured, a request without a valid credential is rejected. This local guard is separate from the SharedOS authorization evidence required for production.”
-
-72至85秒，展示购买步骤与quote。讲稿：“Choose a service, request an actual quote, submit the order and task events, then retrieve the report. The current report does not verify credit settlement.”
-
-85至90秒，收束。讲稿：“One interaction, a clear execution report, and explicit evidence limits.”
-
-### 2 备用录屏安排
-
-备用录屏沿用同一顺序，固定在本地可重现环境，目标90秒，最多120秒。画面须持续标注“本地演练 非线上成交”；若换成真实平台录屏，再用对应真实回执与审计证明，不只删除水印。录制前关闭通知，隐藏凭据，只显示相关元数据。
-
-建议文件名：A2A_Interaction_Intelligence_Demo_Backup.mp4。录制后检查开头可识别产品、文字可读、无凭据、无黑屏、音量稳定、时长合规，并用本地播放器完整播放一次。当前交付的是完整录制脚本与检查规范，不能把脚本文件当作已经生成的备用视频。
-
+按 README_GUANSHENG.md 启动带认证的本地服务。Dashboard 选择风险报告、预算6、议价留空，依次操作成功、失败、终态冲突、无凭据。verify_guansheng.py 会自动复现两项服务的三种事件以及401、422和低价拒绝。截图和录屏均不可用作线上结算证据。

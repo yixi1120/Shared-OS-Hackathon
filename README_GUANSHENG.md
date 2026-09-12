@@ -1,18 +1,18 @@
-# 冠盛 Dashboard 与产品材料 V3
+# 冠盛最终产品材料 V4
 
-本次从 main `3b5b99dad1703b873de5810b9743afce8365cb46` 新建 Guansheng-v3，仅新增本页列出的材料、展示适配入口和验证文件。没有复制旧 Guansheng 分支的历史、嵌套 Runtime、旧 Dashboard 或旧定价文件。现有 `src/`、依赖声明及思棋合同文件保持 main 原样。
-
-两项服务均为 6 credits，底价 5。已知风险标记为 14 项；新增 `conflicting_terminal_task_state`，冲突时 `completed=false`、`reputation_eligible=false`。报告的完成计分项不加40分，标记不重复扣分。
+基于 main 9dff6be664f216769621a6ff6e72e3372581cc3a 更新产品内容、销售意图匹配和 Dashboard。评分、定价与订单算法保持当前 main。两项报告均6 credits、底价5；目录、健康检查、Schema、示例输入和报价免费。全部14项风险标记保留。
 
 ## 交付入口
 
-- [Word 手册](docs/guansheng/冠盛产品设计与自动销售交付手册V3.docx) 与 [Markdown 正文](docs/guansheng/冠盛产品设计与自动销售交付手册V3.md)
-- [机器材料](docs/guansheng)：catalog、pricing_policy、pitch、faq、sales、risk_flags、Schema、submission
-- [Dashboard 源码](dashboard)：成功、失败、终态冲突事件输入；所有报告来自 API
-- [验证记录和真实截图](docs/guansheng/verification)
-- [版本与新增范围](docs/guansheng/release.json)
+- docs/guansheng/catalog.json 与相关 Schema：机器调用说明。
+- introduction.json、pitch.json、faq.json、sales.json 及对应 Markdown：最终销售内容。
+- 冠盛最终产品交付手册V4.docx：可直接阅读的最终说明。
+- dashboard/：真实 API 面板源码，支持仅询价及三个报告场景。
+- docs/guansheng/verification/：本次验证与截图。
+- docs/guansheng/media/A2A_Interaction_Intelligence_Backup.webm：字幕备用录屏。
+- SUBMISSION.md、DEMO_SCRIPT.md、FINAL_CHECKLIST.md：提交文案与操作流程。
 
-Schema 从 main 的 `docs/siqi/schemas.json` 派生，`x-known-risk-flags` 注释列出14个已知标记，不改变原校验规则，也不使用封闭枚举拒绝未知标记。Risk 的 `interpretation.flags` 必须与实际风险逐项对应。
+官方待填信息仅在 docs/guansheng/submission.json 中保存 null；按用户要求暂缓等待雅婷及正式提交。历史 V3 手册由 V4 替代。既有团队历史审计文件中的旧版本数字不代表现售价格。
 
 ## 本地启动
 
@@ -42,10 +42,3 @@ $env:DASHBOARD_TEST_BASE = 'http://127.0.0.1:8786'
 
 HTTP 检查创建本地演练订单并写入 `docs/guansheng/verification`，不要直接使用正式比赛额度。冲突示例使用 main 的 `conflicting_terminals` 事件，预期57.5分、完成false、信誉资格false；成功98分，失败43分。API和截图属于本地固定输入的实际响应，不证明线上成交或已结算 credits。
 
-Word 手册的页数会随渲染器变化：作者环境为 25 页，LibreOffice QA 为 21 页；验收以内容完整、无裁切和无重叠为准，不以固定页数为准。
-
-## 接入与提交状态
-
-`/product/catalog.json` 的相对 Schema 可直接解析。Pitch、FAQ和销售规则可读取，Brain 的意图选择与团队签收仍由子洋确认。单笔报告不等于全局信誉，调用方自报不等于平台验证。
-
-Discord username 与 AICOO `#submission` 入口已经确认并写入 `submission.json`。SharedNet node ID、purpose string、线上服务及产品 Agent 地址继续保持 null，等待真实 Runtime 信息，不能用示例值代填。当前材料不声称已部署或完成比赛提交。主分支历史审计中旧价格用于追溯，不是本次新增材料的现售价格。

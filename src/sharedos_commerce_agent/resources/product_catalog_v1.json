@@ -1,13 +1,24 @@
 {
-  "catalog_version": "arena-v1",
+  "catalog_version": "arena-v4",
   "product_name": "A2A Interaction Intelligence",
   "services": [
     {
       "service_id": "a2a-interaction-trace",
       "name": "A2A Interaction Trace",
-      "description": "Evaluate one A2A task from structured lifecycle events. Receive completion, delivery, ordering, reported latency, schema validity, an execution score, evidence confidence, and risk flags.",
-      "tags": ["a2a", "task", "telemetry", "evidence"],
-      "evidence": ["task state", "artifact delivery", "latency", "schema validity", "evidence references"],
+      "description": "Evaluate one A2A task from structured lifecycle events. Receive completion, delivery, ordering, reported latency, schema validity, an execution score, evidence confidence, and risk flags. Both reports cost 6 credits, floor 5. Catalog, health, schemas, samples and quotes are free. Agents call the API directly; local order status does not prove credit settlement.",
+      "tags": [
+        "a2a",
+        "task",
+        "telemetry",
+        "evidence"
+      ],
+      "evidence": [
+        "task state",
+        "artifact delivery",
+        "latency",
+        "schema validity",
+        "evidence references"
+      ],
       "reputation": 0.5,
       "reputation_status": "unrated-placeholder-not-a-product-output",
       "input_schema_id": "urn:a2a:interaction-input:v1",
@@ -23,9 +34,18 @@
     {
       "service_id": "a2a-interaction-risk-report",
       "name": "A2A Interaction Risk Report",
-      "description": "Return the same task metrics and risk flags as Interaction Trace, with fixed bilingual explanations of each triggered flag and the report scope.",
-      "tags": ["a2a", "task", "risk", "evidence"],
-      "evidence": ["machine-readable flags", "bilingual risk explanations", "evidence references"],
+      "description": "Return the same task metrics and risk flags as Interaction Trace, with fixed bilingual explanations of each triggered flag and the report scope. Both reports cost 6 credits, floor 5. Catalog, health, schemas, samples and quotes are free. Agents call the API directly; local order status does not prove credit settlement.",
+      "tags": [
+        "a2a",
+        "task",
+        "risk",
+        "evidence"
+      ],
+      "evidence": [
+        "machine-readable flags",
+        "bilingual risk explanations",
+        "evidence references"
+      ],
       "reputation": 0.5,
       "reputation_status": "unrated-placeholder-not-a-product-output",
       "input_schema_id": "urn:a2a:interaction-input:v1",

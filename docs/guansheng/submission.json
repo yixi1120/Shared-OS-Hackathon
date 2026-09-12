@@ -1,20 +1,52 @@
 {
-  "status": "pending_runtime_confirmation",
+  "status": "pending_yating_confirmation",
   "project_name": "A2A Interaction Intelligence",
   "repository": "https://github.com/yixi1120/Shared-OS-Hackathon",
   "discord_username": "yixi1120_19547",
-  "discord_display_name": "yixi1120",
-  "discord_server": "AICOO",
-  "discord_submission_channel": "submission",
-  "discord_submission_url": "https://discord.com/channels/1507115506682040440/1547362093592743936",
-  "competition_room_status": "announced_for_release_two_hours_before_start",
-  "sharednet_seat_id": null,
   "sharednet_node_id": null,
-  "sharedos_principal_id": null,
-  "sharedos_agent_address": null,
   "purpose_string": null,
   "service_base_url": null,
   "product_agent_addresses": null,
   "confirmed_by": null,
-  "confirmed_at": null
+  "confirmed_at": null,
+  "version": "guansheng-v4",
+  "one_sentence": "A2A Interaction Intelligence provides A2A Interaction Trace and A2A Interaction Risk Report for one task at 6 credits each, floor 5; catalog, health checks, schemas, samples and quotes are free.",
+  "sharednet_seat_id": null,
+  "official_submission_instruction_url": null,
+  "discord_submission_message_url": null,
+  "submitted_at": null,
+  "submission_status": "deferred_by_user_pending_yating",
+  "free_resources": [
+    "catalog",
+    "health",
+    "schema",
+    "sample_inputs",
+    "quote"
+  ],
+  "services": [
+    {
+      "service_id": "a2a-interaction-trace",
+      "price_credits": 6,
+      "floor_credits": 5
+    },
+    {
+      "service_id": "a2a-interaction-risk-report",
+      "price_credits": 6,
+      "floor_credits": 5
+    }
+  ],
+  "demo_video": "media/A2A_Interaction_Intelligence_Backup.webm",
+  "demo_scope": "local real API with fixture inputs; no official settlement proof",
+  "discord_submission_channel": "submission",
+  "field_confirmation": {
+    "discord_username": "user confirmed 2026-09-12",
+    "discord_submission_channel": "user confirmed 2026-09-12"
+  },
+  "discord_display_name": "yixi1120",
+  "discord_server": "AICOO",
+  "discord_submission_url": "https://discord.com/channels/1507115506682040440/1547362093592743936",
+  "competition_room_status": "announced_for_release_two_hours_before_start",
+  "sharedos_principal_id": null,
+  "sharedos_agent_address": null,
+  "discord_submission_channel_path": "AICOO → SHAREDOS HACKATHON → #submission"
 }
