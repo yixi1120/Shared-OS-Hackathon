@@ -48,4 +48,4 @@ Word 手册的页数会随渲染器变化：作者环境为 25 页，LibreOffice
 
 `/product/catalog.json` 的相对 Schema 可直接解析。Pitch、FAQ和销售规则可读取，Brain 的意图选择与团队签收仍由子洋确认。单笔报告不等于全局信誉，调用方自报不等于平台验证。
 
-Discord username、SharedNet node ID、purpose string、线上服务及产品 Agent 地址继续在 `submission.json` 保持 null，等待雅婷确认。当前材料不声称已部署或完成比赛提交。主分支历史审计中旧价格用于追溯，不是本次新增材料的现售价格。
+Discord username 与 AICOO `#submission` 入口已经确认并写入 `submission.json`。SharedNet node ID、purpose string、线上服务及产品 Agent 地址继续保持 null，等待真实 Runtime 信息，不能用示例值代填。当前材料不声称已部署或完成比赛提交。主分支历史审计中旧价格用于追溯，不是本次新增材料的现售价格。

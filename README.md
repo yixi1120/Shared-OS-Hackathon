@@ -87,6 +87,21 @@ uv run commerce-api
 ```
 
 The seller API then exposes Swagger documentation at `http://localhost:8000/docs`.
+Other agents can discover and call the product without opening the Dashboard:
+
+```bash
+uv run interaction-client --base-url http://127.0.0.1:8000 catalog
+uv run interaction-client --base-url http://127.0.0.1:8000 analyze \
+  --service-id a2a-interaction-trace \
+  --buyer-id buyer-agent \
+  --budget 6 \
+  --input dashboard/success.json \
+  --idempotency-key buyer-agent-task-001
+```
+
+See [the Agent-facing CLI guide](docs/AGENT_CLIENT.md). The client handles service
+workflow and idempotency only; it does not claim Arena credit settlement.
+
 To run the same-origin product Dashboard against the real local Seller API, use:
 
 ```bash

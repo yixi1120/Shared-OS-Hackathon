@@ -57,5 +57,20 @@ def test_conflict_example_matches_main_and_allows_future_flags():
 
 def test_production_identifiers_remain_unconfirmed():
     submission = load('submission.json')
-    for key in ['discord_username', 'sharednet_node_id', 'purpose_string', 'service_base_url', 'product_agent_addresses', 'confirmed_by', 'confirmed_at']:
+    assert submission['discord_username'] == 'yixi1120_19547'
+    assert submission['discord_submission_channel'] == 'submission'
+    assert submission['discord_submission_url'].endswith('/1547362093592743936')
+    for key in ['sharednet_seat_id', 'sharednet_node_id', 'sharedos_principal_id', 'sharedos_agent_address', 'purpose_string', 'service_base_url', 'product_agent_addresses', 'confirmed_by', 'confirmed_at']:
         assert submission[key] is None
+
+
+def test_catalog_marks_free_and_paid_boundaries():
+    catalog = load('catalog.json')
+    assert {item['endpoint'] for item in catalog['free_capabilities']} >= {
+        'GET /health',
+        'GET /v1/catalog',
+        'GET /v1/contracts/interaction-v1',
+    }
+    assert all(service['access_tier'] == 'paid' for service in catalog['services'])
+    assert 'are free' in load('pitch.json')['access_boundary']
+    assert load('faq.json')['answers'][0]['id'] == '0'

@@ -1,10 +1,11 @@
 {
   "version": "guansheng-v3",
+  "access_boundary": "Health, catalog, schemas, examples and pricing explanations are free. Trace and Risk report generation is paid at 6 credits, with a floor of 5. Arena credits are handled by the official room mechanism.",
   "templates": [
     {
       "id": "1",
       "title": "1 二十秒以内的自动介绍",
-      "content": "英文可直接发送或朗读：\n\nWe turn one A2A task’s lifecycle events into a readable execution report. See completion, latency, evidence confidence, and risk flags. Self-reports stay self-reports. No global reputation or payment verification. Send task metadata, choose a service, and request a quote.\n\n该稿按空格分词共39词，按每分钟150词约16秒，给停顿留有余量；文本房间可直接发送。若录制语音，成片以实际计时为准，须控制在20秒以内并保留证据边界句。\n\n中文对应稿：\n\n我们分析单笔A2A任务的阶段事件，返回执行指标、证据置信度和风险标记。自报不等于平台核验，也不是全局信誉。提交任务元数据即可询价。"
+      "content": "英文可直接发送或朗读：\n\nWe turn one A2A task’s lifecycle events into a readable execution report. Discovery and schemas are free; Trace and Risk reports cost 6 credits, with a floor of 5. Self-reports stay self-reports. Send task metadata, choose a service, and request a quote.\n\n文本房间可直接发送。若录制语音，成片以实际计时为准，须控制在20秒以内并保留证据边界句。\n\n中文对应稿：\n\n我们免费提供目录和Schema，将单笔A2A任务的阶段事件生成Trace或Risk报告，两项均为6 credits、底价5。自报不等于平台核验，也不是全局信誉。提交任务元数据即可询价。"
     },
     {
       "id": "2",

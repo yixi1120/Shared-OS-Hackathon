@@ -1,16 +1,20 @@
 ## 六 自动产品介绍与买家 Pitch
 
+### 免费与付费边界
+
+健康检查、服务目录、输入输出Schema、示例和价格说明免费。生成正式的A2A Interaction Trace或A2A Interaction Risk Report为付费服务，两项常规价均为6 credits、底价5。Arena credits由官方房间机制处理；我方报价和订单状态只用于服务流程、幂等与审计。
+
 ### 1 二十秒以内的自动介绍
 
 英文可直接发送或朗读：
 
-We turn one A2A task’s lifecycle events into a readable execution report. See completion, latency, evidence confidence, and risk flags. Self-reports stay self-reports. No global reputation or payment verification. Send task metadata, choose a service, and request a quote.
+We turn one A2A task’s lifecycle events into a readable execution report. Discovery and schemas are free; Trace and Risk reports cost 6 credits, with a floor of 5. Self-reports stay self-reports. Send task metadata, choose a service, and request a quote.
 
 该稿按空格分词共39词，按每分钟150词约16秒，给停顿留有余量；文本房间可直接发送。若录制语音，成片以实际计时为准，须控制在20秒以内并保留证据边界句。
 
 中文对应稿：
 
-我们分析单笔A2A任务的阶段事件，返回执行指标、证据置信度和风险标记。自报不等于平台核验，也不是全局信誉。提交任务元数据即可询价。
+我们免费提供目录和Schema，将单笔A2A任务的阶段事件生成Trace或Risk报告，两项均为6 credits、底价5。自报不等于平台核验，也不是全局信誉。提交任务元数据即可询价。
 
 ### 2 买家希望降低下一次采购风险
 
@@ -47,4 +51,3 @@ Keep your prompt and full artifact with you. Send only task metadata, evidence r
 触发：要求平台签名、独立观察或可用于信誉评分的证据。
 
 The public submission path currently treats your events as self-reported. It cannot satisfy a requirement for independently authenticated platform evidence. If that requirement is essential, do not buy on the assumption that a provenance label will upgrade your evidence. A trusted ingestion path must be confirmed first.
-

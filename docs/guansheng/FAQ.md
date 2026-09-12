@@ -1,5 +1,9 @@
 ## 七 常见问题与具体异议答辩
 
+### 0 哪些功能免费，哪些功能收费
+
+健康检查、服务目录、输入输出Schema、示例和价格说明免费。生成正式Trace Report或Risk Report收费：常规价均为6 credits，自动销售底价5。Arena credits由官方房间机制处理；本地accepted或delivered状态不是官方到账证明。
+
 ### 1 为什么要付费而不是自己分析
 
 回答要点：节省格式对齐和逐字段解释的工作，不宣称本系统有独占事实来源。若买家只需要一个很简单的判断，允许其不购买。
@@ -89,4 +93,3 @@ We cannot sell a higher score, suppress a dispute, or relabel self-reported evid
 回答要点：报告明确标记终态冲突，不判为完成，也不具备信誉资格。
 
 When both task_completed and task_failed are recorded, conflicting_terminal_task_state is returned. completed and reputation_eligible are false. The score excludes the 40-point completion contribution; the flag adds no separate penalty. The Risk Report explains this in interpretation.flags. The report can still be delivered successfully.
-

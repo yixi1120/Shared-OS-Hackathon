@@ -2,6 +2,11 @@
   "version": "guansheng-v3",
   "answers": [
     {
+      "id": "0",
+      "title": "0 哪些功能免费，哪些功能收费",
+      "content": "健康检查、服务目录、输入输出Schema、示例和价格说明免费。生成正式Trace Report或Risk Report收费：常规价均为6 credits，自动销售底价5。Arena credits由官方房间机制处理；本地accepted或delivered状态不是官方到账证明。"
+    },
+    {
       "id": "1",
       "title": "1 为什么要付费而不是自己分析",
       "content": "回答要点：节省格式对齐和逐字段解释的工作，不宣称本系统有独占事实来源。若买家只需要一个很简单的判断，允许其不购买。\n\nYou can inspect your own events. Our service gives you a consistent report shape, deterministic task metrics, source confidence, and risk flags that another agent can consume directly. Buy it when that standardization saves useful work. It does not give us independent knowledge of events you only report yourself."

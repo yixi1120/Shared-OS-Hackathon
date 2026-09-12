@@ -6,6 +6,8 @@ A2A Interaction Intelligence 面向需要理解任务执行记录的Agent。调�
 
 当前两项服务为A2A Interaction Trace和A2A Interaction Risk Report，后者增加适用范围和逐项中英文风险解释，两项服务常规价均为6 credits、底价5。公共事件上报统一视为单方自报，不构成平台验证；服务不评估Arena credits结算，也不把一笔任务记录包装成全局信誉。长期的跨任务信誉网络，需要更多符合资格的可信证据后再建设。
 
+免费入口包括健康检查、机器可读服务目录、输入输出合同、示例和报价说明。正式生成A2A Interaction Trace或A2A Interaction Risk Report属于付费服务。报价与本地订单只记录服务工作流；Arena credits由官方房间机制处理。
+
 ### 2 Devpost英文正文
 
 Project name
@@ -23,6 +25,8 @@ Agents need more than a persuasive service description after a task. They need a
 What it does
 
 Our service turns structured A2A lifecycle events into a machine-readable interaction report. It separates execution indicators from provenance confidence and includes evidence references and risk flags. A2A Interaction Trace provides the report. A2A Interaction Risk Report adds scope boundaries and bilingual explanations for each actual risk flag in interpretation.flags. Both services normally quote 6 credits, with a floor of 5. Caller-submitted events stay self-reported, and credit settlement is not evaluated.
+
+Health checks, service discovery, schemas, examples, and pricing explanations are free. Generating either formal report is paid. The local quote and order flow tracks service delivery and idempotency; it is not an Arena credit-settlement system.
 
 How it works
 
@@ -52,14 +56,15 @@ A2A Interaction Risk Report — Uses the same task input and report fields, with
 
 | 提交字段 | 当前应填写的值或状态 |
 |---|---|
-| 队长Discord username | 待提供真实用户名 |
+| 队长Discord username | yixi1120_19547（display name: yixi1120） |
+| Discord提交入口 | AICOO → SHAREDOS HACKATHON → #submission；https://discord.com/channels/1507115506682040440/1547362093592743936 |
 | 个人Agent SharedNet node ID | 待提供真实节点ID |
 | 服务调用地址与方式 | 待提供真实SharedNet入口 不能用localhost代替 |
 | SharedOS purpose string | 待提供实际审计可检索值 |
 | 产品Agent地址 | 待提供实际地址列表 |
 | 仓库链接 | https://github.com/yixi1120/Shared-OS-Hackathon |
-| 文稿采用的代码版本 | main 3b5b99d 冠盛新增材料基于此版本 |
-| 冠盛交付包 | Guansheng-v3 基于最新main的新增材料 待合并 |
+| 文稿采用的代码版本 | main 67037c8 已完成冠盛V3集成 |
+| 冠盛交付包 | Guansheng V3 已合入main |
 
 上述未填写项不能通过猜测补齐。提交正文已经留出准确字段位置，但现阶段不能勾选“标识全部写入”。取得真实值后逐项填写，并核对节点、服务目录、审计与视频中的标识一致。
 
@@ -88,4 +93,3 @@ A2A Interaction Risk Report — Uses the same task input and report fields, with
 □ 比赛日期、缺失规则及有效credits口径已按最终公告确认。
 
 □ 在真实截止时间前提交并保存平台回执。
-

@@ -5,10 +5,29 @@
   "deployment_confirmation": "pending_yating",
   "pricing_policy_version": "arena-fixed-v1",
   "authentication": "Bearer when configured; obtain credentials through authorized operator channel",
+  "free_capabilities": [
+    {
+      "name": "Health check",
+      "endpoint": "GET /health"
+    },
+    {
+      "name": "Service discovery and pricing catalog",
+      "endpoint": "GET /v1/catalog"
+    },
+    {
+      "name": "Input and output contracts",
+      "endpoint": "GET /v1/contracts/interaction-v1"
+    },
+    {
+      "name": "Service explanation, schemas and examples",
+      "endpoint": "Repository documentation"
+    }
+  ],
   "services": [
     {
       "service_id": "a2a-interaction-trace",
       "name": "A2A Interaction Trace",
+      "access_tier": "paid",
       "description": "Evaluate one submitted task and return execution metrics, source confidence and risk flags. No payment verification or global reputation.",
       "regular_price_credits": 6,
       "first_purchase_price_credits": 6,
@@ -20,6 +39,7 @@
     {
       "service_id": "a2a-interaction-risk-report",
       "name": "A2A Interaction Risk Report",
+      "access_tier": "paid",
       "description": "Return the same single-task metrics with meaning, not_meaning and bilingual explanations in interpretation.flags. No extra evidence or provenance upgrade.",
       "regular_price_credits": 6,
       "first_purchase_price_credits": 6,
