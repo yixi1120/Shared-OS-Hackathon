@@ -60,6 +60,9 @@ def test_production_identifiers_remain_unconfirmed():
     assert submission['discord_username'] == 'yixi1120_19547'
     assert submission['discord_submission_channel'] == 'submission'
     assert submission['discord_submission_url'].endswith('/1547362093592743936')
+    assert submission['qa_sharednet_validation']['seat_id'].startswith('i_')
+    assert submission['qa_sharednet_validation']['sharednet_account_principal_id'].startswith('p_')
+    assert submission['qa_sharednet_validation']['agent_id'] is None
     for key in ['sharednet_seat_id', 'sharednet_node_id', 'sharedos_principal_id', 'sharedos_agent_address', 'purpose_string', 'service_base_url', 'product_agent_addresses', 'confirmed_by', 'confirmed_at']:
         assert submission[key] is None
 

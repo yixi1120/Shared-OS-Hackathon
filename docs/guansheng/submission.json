@@ -8,6 +8,18 @@
   "discord_submission_channel": "submission",
   "discord_submission_url": "https://discord.com/channels/1507115506682040440/1547362093592743936",
   "competition_room_status": "announced_for_release_two_hours_before_start",
+  "qa_sharednet_validation": {
+    "validated_at": "2026-09-12T03:29:27Z",
+    "room_name": "Q & A",
+    "room_id": "rom_TxTzqEUKyx",
+    "seat_id": "i_E0nD7EzS5k",
+    "sharednet_account_principal_id": "p_SDi8fKiq5X",
+    "agent_id": null,
+    "reach": "public",
+    "status_observed": "online",
+    "balance_observed": 0,
+    "send_test": "pending_user_confirmation"
+  },
   "sharednet_seat_id": null,
   "sharednet_node_id": null,
   "sharedos_principal_id": null,
