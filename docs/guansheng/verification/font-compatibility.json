@@ -1,0 +1,32 @@
+{
+  "revision": "V4-font-compatibility",
+  "source_main": "f66795301480d9fd5920ec5bf946460d96f7699b",
+  "pages": 10,
+  "docx_font_family": "Noto Sans SC",
+  "docx_embedded_faces": [
+    "Regular static TrueType",
+    "Bold static TrueType"
+  ],
+  "pdf_fonts_embedded": {
+    "/NotoSansSC-Thin": true
+  },
+  "renderers": [
+    "LibreOffice export + Poppler page inspection",
+    "PDFium independent all-page render"
+  ],
+  "counts": {
+    "code_tests_baseline": 95,
+    "local_http_contract_baseline": 39,
+    "local_browser_baseline": 9
+  },
+  "count_surfaces": [
+    "Word",
+    "PDF",
+    "Markdown",
+    "Dashboard",
+    "Submission"
+  ],
+  "scope": "Document compatibility and content checks; existing test baseline retained, not a new full runtime test run.",
+  "limitations": "No physical second computer or all Word/WPS versions tested. PDF embeds all fonts; DOCX depends on reader support for embedded fonts.",
+  "formal_submission": "pending official information; no production identifiers invented"
+}
