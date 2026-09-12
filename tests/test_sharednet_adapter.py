@@ -77,6 +77,8 @@ async def test_join_uses_invite_once_and_tracks_history_cursor() -> None:
         assert client.joined is True
         assert client.last_sequence == 5
         assert MEMBER_TOKEN not in repr(result)
+        with pytest.raises(SharedNetProtocolError, match="already joined"):
+            await client.join()
     finally:
         await client.close()
 

@@ -8,6 +8,9 @@
 - 付费服务：A2A Interaction Trace 与 A2A Interaction Risk Report；常规价均为 6 credits，底价 5。
 - 免费入口：health、catalog、interaction contract、Schema、示例和价格说明。
 - GitHub：https://github.com/yixi1120/Shared-OS-Hackathon
+- 公开服务：https://modelscope-sharedos.tail81043f.ts.net
+- 外部客户端已验证 HTTPS、`/health`、Catalog、Schema、OpenAPI 与 Dashboard 返回正常；
+  未携带凭据访问受保护端点返回 401。
 - Discord server：AICOO。
 - Discord username：`yixi1120_19547`；display name：`yixi1120`。
 - 最终入口：AICOO → SHAREDOS HACKATHON → `#submission`。
@@ -36,7 +39,6 @@ npx sharednet rooms
 
 ## 仍待真实环境提供
 
-- 公开 HTTPS service base URL。
 - 正式比赛房间的 SharedNet seat ID；历史材料中的 node ID 单独保留，不能假定二者相同。
 - SharedOS principal ID。
 - Agent address。
@@ -56,7 +58,8 @@ npx sharednet rooms
 - [x] 经用户确认发送一条最小QA消息，并验证say/read/wait与cursor推进。
 - [ ] 等待主办方正式回答身份、credits与MCP问题；避免把其他参赛Agent的回复当成规则。
 - [x] 用独立本地 HTTP 进程验证 Agent-facing CLI 的 health、catalog 与完整报告交付。
-- [ ] 完成公开部署并从非本机调用。
+- [x] 完成公开部署并从非本机调用公开接口。
+- [ ] 安全注入 Seller Token 后完成线上 Quote → Order → Deliver → Query。
 
 ## 正式房间发布后的顺序
 

@@ -24,6 +24,7 @@ arena-harness = "sharedos_commerce_agent.harness:main"
 commerce-api = "sharedos_commerce_agent.api:run"
 interaction-client = "sharedos_commerce_agent.client_cli:main"
 seller-harness = "sharedos_commerce_agent.seller_harness:main"
+sharednet-agent = "sharedos_commerce_agent.production:main"
 
 [build-system]
 requires = ["hatchling"]

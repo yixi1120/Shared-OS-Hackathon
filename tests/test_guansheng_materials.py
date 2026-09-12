@@ -55,12 +55,15 @@ def test_conflict_example_matches_main_and_allows_future_flags():
     Draft202012Validator(load('risk_delivery.schema.json')).validate(dict(trade_id='contract-test', status='delivered', output=report))
 
 
-def test_production_identifiers_remain_unconfirmed():
+def test_verified_public_service_and_pending_runtime_identifiers():
     submission = load('submission.json')
     assert submission['qa_sharednet_validation']['seat_id'].startswith('i_')
     assert submission['qa_sharednet_validation']['sharednet_account_principal_id'].startswith('p_')
     assert submission['qa_sharednet_validation']['agent_id'] is None
-    for key in ['sharednet_node_id', 'purpose_string', 'service_base_url', 'product_agent_addresses', 'confirmed_by', 'confirmed_at']:
+    assert submission['service_base_url'] == 'https://modelscope-sharedos.tail81043f.ts.net'
+    assert submission['confirmed_by']
+    assert submission['confirmed_at']
+    for key in ['sharednet_node_id', 'purpose_string', 'product_agent_addresses']:
         assert submission[key] is None
 
 
@@ -68,7 +71,7 @@ def test_confirmed_discord_and_pending_environment_fields():
     s = load('submission.json')
     assert s['discord_username'] == 'yixi1120_19547'
     assert s['discord_submission_channel_path'] == 'AICOO → SHAREDOS HACKATHON → #submission'
-    for key in ['sharednet_seat_id', 'sharedos_principal_id', 'sharedos_agent_address', 'service_base_url', 'discord_submission_message_url', 'submitted_at']:
+    for key in ['sharednet_seat_id', 'sharedos_principal_id', 'sharedos_agent_address', 'discord_submission_message_url', 'submitted_at']:
         assert s[key] is None
 
 

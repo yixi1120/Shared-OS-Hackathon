@@ -14,6 +14,15 @@ def test_agent_client_reads_free_endpoints_and_delivers_paid_report():
             return httpx.Response(200, json=[{"service_id": "a2a-interaction-trace"}])
         if request.url.path == "/v1/contracts/interaction-v1":
             return httpx.Response(200, json={"input": {"type": "object"}})
+        if request.url.path == "/v1/auth/whoami":
+            return httpx.Response(
+                200,
+                json={
+                    "principal_id": "buyer-1",
+                    "mode": "scoped-agent-token",
+                    "is_operator": False,
+                },
+            )
         if request.url.path == "/v1/quotes":
             return httpx.Response(200, json={"quote_id": "quote-1", "ask_price": 6})
         if request.url.path == "/v1/orders":
@@ -30,6 +39,7 @@ def test_agent_client_reads_free_endpoints_and_delivers_paid_report():
         assert client.health() == {"status": "ok"}
         assert client.catalog()[0]["service_id"] == "a2a-interaction-trace"
         assert client.contract()["input"]["type"] == "object"
+        assert client.whoami()["principal_id"] == "buyer-1"
         result = client.analyze(
             service_id="a2a-interaction-trace",
             buyer_id="buyer-1",

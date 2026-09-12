@@ -51,6 +51,9 @@ class InteractionServiceClient:
     def contract(self) -> dict[str, Any]:
         return self._json(self.client.get("/v1/contracts/interaction-v1"))
 
+    def whoami(self) -> dict[str, Any]:
+        return self._json(self.client.get("/v1/auth/whoami"))
+
     def analyze(
         self,
         *,
@@ -119,6 +122,9 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("health", help="Check service availability (free).")
     subparsers.add_parser("catalog", help="Read services and prices (free).")
     subparsers.add_parser("contract", help="Read input/output schemas (free).")
+    subparsers.add_parser(
+        "whoami", help="Resolve the authenticated Seller API principal."
+    )
 
     analyze = subparsers.add_parser(
         "analyze", help="Request and deliver one paid Trace or Risk report."
@@ -151,6 +157,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                 result = client.catalog()
             elif args.command == "contract":
                 result = client.contract()
+            elif args.command == "whoami":
+                result = client.whoami()
             else:
                 payload = json.loads(args.input.read_text(encoding="utf-8"))
                 result = client.analyze(

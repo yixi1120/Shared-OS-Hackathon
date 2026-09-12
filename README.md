@@ -133,6 +133,13 @@ discovery, while quote, negotiation, order, delivery, and order lookup endpoints
 organizer-advertised A2A security scheme and bind authenticated identity to `buyer_id`
 when that contract is available.
 
+For interim per-Agent identity, set secret `SELLER_AGENT_TOKENS_JSON` to a JSON mapping
+from principal/buyer IDs to unique bearer tokens of at least 24 characters. The server
+hashes those tokens at startup, exposes authenticated identity at `/v1/auth/whoami`,
+binds quote/order/delivery access to that principal, and rejects buyer impersonation.
+`SELLER_API_TOKEN` remains an operator/break-glass credential. This local mapping does
+not replace official SharedOS capability verification or elevate evidence provenance.
+
 `seller-harness` creates concurrent buyer personas and deliberately replays every order,
 mutates reused idempotency keys, and attempts to spoof trusted provenance. For a timed
 soak run, use `uv run seller-harness --concurrency 16 --duration-seconds 7200`.
@@ -195,6 +202,51 @@ Room secrets must stay outside Git and chat messages. Configure them at runtime 
 `SHAREDNET_MEMBER_TOKEN`. Persist `SHAREDNET_LAST_SEQUENCE` with the member credential
 so a restarted Agent resumes without skipping messages. Until a signed Arena settlement
 contract exists, seller outputs continue to report `credit_settlement=not_evaluated`.
+
+### Production room listener
+
+`sharednet-agent` is the unattended production entry point. It joins a room once with
+the organizer-issued invite, stores the returned member identity in a private `0600`
+file, resumes that same identity after restart, and consumes messages through the
+durable SQLite inbox. It responds only to versioned discovery/query messages or text
+that names this product. Every reply carries a `reply_to` marker; after an ambiguous
+restart the listener checks the room for that marker before sending again.
+
+First start with an organizer-issued room invite:
+
+```bash
+export SERVICE_BASE_URL=https://modelscope-sharedos.tail81043f.ts.net
+export SHAREDNET_ROOM_ID=rom_from_organizer
+export SHAREDNET_INVITE_TOKEN=rit_from_organizer
+uv run sharednet-agent listen --announce
+```
+
+The invite is not stored. The resulting member token and member/seat ID are saved to
+`.sharednet/runtime-identity.json`, while `.sharednet/inbox.sqlite3` retains the receive
+cursor and unacknowledged messages. Both paths must be on persistent storage. On later
+starts the invite can be removed from the environment; the saved member identity is
+reused automatically. To inject a credential from an external secret store instead,
+set both `SHAREDNET_MEMBER_TOKEN` and `SHAREDNET_MEMBER_ID`.
+
+For a non-sending smoke test, omit `--announce` and add `--once --poll-timeout 0`.
+Never place a real `rit_`, `sni_`, seller bearer token, or Arena token in Git, a room
+message, or a screenshot.
+
+The same command also exposes an `arena` subcommand that runs the existing persistent
+LangGraph only when the organizer publishes all REST business routes. It fails closed
+if any route is absent instead of inventing purchase or credit semantics:
+
+```bash
+uv run sharednet-agent arena --mode critique --run-id official-critique-round
+uv run sharednet-agent arena --mode market --run-id official-market-round
+```
+
+This room identity authenticates membership to SharedNet. It does **not** turn the
+Seller API's provisional shared Bearer token into per-agent SharedOS authentication.
+Until the organizer provides the principal/capability verification contract, caller
+events remain `self_reported` and the public URL must not claim verified settlement.
+Operational details and a preflight checklist are in
+[the production runbook](docs/PRODUCTION_AGENT.md).
 
 ## Important files
 

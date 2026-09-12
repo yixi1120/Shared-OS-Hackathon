@@ -181,6 +181,8 @@ class SharedNetRoomClient:
         await self.client.aclose()
 
     async def join(self) -> SharedNetJoinResult:
+        if self._member_token is not None:
+            raise SharedNetProtocolError("SharedNet client is already joined")
         if self._invite_token is None:
             raise SharedNetProtocolError("join requires an organizer-issued rit_ token")
 
@@ -217,6 +219,7 @@ class SharedNetRoomClient:
 
         history = _parse_message_page(payload.get("history", {}))
         self._member_token = member_token
+        self._invite_token = None
         self._advance_cursor(history)
         return SharedNetJoinResult(
             room_id=self.room_id,

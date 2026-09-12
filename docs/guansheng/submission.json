@@ -1,14 +1,14 @@
 {
-  "status": "pending_yating_confirmation",
+  "status": "public_service_verified_pending_official_identity",
   "project_name": "A2A Interaction Intelligence",
   "repository": "https://github.com/yixi1120/Shared-OS-Hackathon",
   "discord_username": "yixi1120_19547",
   "sharednet_node_id": null,
   "purpose_string": null,
-  "service_base_url": null,
+  "service_base_url": "https://modelscope-sharedos.tail81043f.ts.net",
   "product_agent_addresses": null,
-  "confirmed_by": null,
-  "confirmed_at": null,
+  "confirmed_by": "Yating deployment; independently verified from an external client",
+  "confirmed_at": "2026-09-12T14:42:38Z",
   "version": "guansheng-v4",
   "one_sentence": "A2A Interaction Intelligence provides A2A Interaction Trace and A2A Interaction Risk Report for one task at 6 credits each, floor 5; catalog, health checks, schemas, samples and quotes are free.",
   "sharednet_seat_id": null,
@@ -36,11 +36,12 @@
     }
   ],
   "demo_video": "media/A2A_Interaction_Intelligence_Backup.webm",
-  "demo_scope": "local real API with fixture inputs; no official settlement proof",
+  "demo_scope": "public HTTPS discovery and UI verified; authenticated paid flow and official settlement still pending",
   "discord_submission_channel": "submission",
   "field_confirmation": {
     "discord_username": "user confirmed 2026-09-12",
-    "discord_submission_channel": "user confirmed 2026-09-12"
+    "discord_submission_channel": "user confirmed 2026-09-12",
+    "service_base_url": "Yating supplied and external health/catalog/schema/dashboard checks passed 2026-09-12"
   },
   "discord_display_name": "yixi1120",
   "discord_server": "AICOO",

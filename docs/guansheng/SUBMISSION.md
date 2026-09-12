@@ -1,6 +1,6 @@
 # A2A Interaction Intelligence submission 文案
 
-本稿是产品内容定稿。Discord 用户名与提交频道已由用户确认并写入 submission.json；其余官方身份与线上信息尚未交付，按用户要求暂缓正式提交。全部待填信息仅保存在同目录 submission.json；本文件不复制待填表格，也不用演练身份替代。
+本稿是产品内容定稿。Discord 用户名、提交频道与公开 HTTPS 服务地址已确认并写入 submission.json；正式 SharedNet seat、SharedOS principal、Agent address 和提交回执仍待官方环境。全部待填信息仅保存在同目录 submission.json；本文件不复制待填表格，也不用演练身份替代。
 
 ## 产品介绍
 
