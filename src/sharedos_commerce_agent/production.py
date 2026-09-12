@@ -6,6 +6,7 @@ import fcntl
 import json
 import logging
 import os
+import re
 import signal
 import stat
 from dataclasses import asdict, dataclass, field
@@ -162,10 +163,18 @@ class RoomMessageRouter:
         *,
         agent_name: str,
         service_base_url: str,
+        payment_target: str | None = None,
         sales_policy: SalesPolicy | None = None,
     ) -> None:
         self.agent_name = agent_name
         self.service_base_url = self._normalize_base_url(service_base_url)
+        if payment_target is not None and not re.fullmatch(
+            r"(?:p|a|i)_[0-9A-Za-z]{10}", payment_target
+        ):
+            raise RuntimeConfigurationError(
+                "payment_target must be a SharedNet p_, a_, or i_ identifier"
+            )
+        self.payment_target = payment_target
         self.sales_policy = sales_policy or SalesPolicy()
         self.services = [
             {
@@ -238,6 +247,20 @@ class RoomMessageRouter:
     def _service_offer(
         self, reply_to: str | None, *, announcement: bool = False
     ) -> str:
+        payment: dict[str, Any]
+        if self.payment_target is None:
+            payment = {"status": "unavailable"}
+        else:
+            payment = {
+                "status": "available",
+                "target": self.payment_target,
+                "currency": "credits",
+                "settlement": "sharednet-ledger",
+                "instruction": (
+                    f"pay {self.payment_target} <agreed_amount> "
+                    '--memo "<service_id> order=<stable_order_id>" --room'
+                ),
+            }
         return self._encoded(
             reply_to,
             "service_offer",
@@ -251,6 +274,7 @@ class RoomMessageRouter:
                 "Use the organizer-authorized identity channel. Credentials are never "
                 "published in room messages."
             ),
+            payment=payment,
             credit_settlement="not_evaluated",
         )
 
@@ -449,6 +473,7 @@ async def bootstrap_room_runtime(
         router = RoomMessageRouter(
             agent_name=settings.sharednet_agent_name,
             service_base_url=settings.service_base_url,
+            payment_target=identity.member_id,
         )
         return BootstrappedRuntime(
             agent=SharedNetProductionAgent(

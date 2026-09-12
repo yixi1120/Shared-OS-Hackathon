@@ -245,6 +245,9 @@ file, resumes that same identity after restart, and consumes messages through th
 durable SQLite inbox. It responds only to versioned discovery/query messages or text
 that names this product. Every reply carries a `reply_to` marker; after an ambiguous
 restart the listener checks the room for that marker before sending again.
+Every service offer also publishes the formal `i_...` seat as its `payment.target` and
+an official pay-command template; the target is routing information, never the member
+token credential.
 
 First start with an organizer-issued room invite:
 

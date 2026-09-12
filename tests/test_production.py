@@ -24,8 +24,8 @@ from sharedos_commerce_agent.sharednet_adapter import (
 )
 
 
-ROOM_ID = "rom_Production123"
-MEMBER_ID = "i_Production123"
+ROOM_ID = "rom_ProdRoom01"
+MEMBER_ID = "i_ProdSeat01"
 MEMBER_TOKEN = "sni_production-secret"
 INVITE_TOKEN = "rit_invite-secret"
 SERVICE_URL = "https://service.example.test"
@@ -174,7 +174,9 @@ async def test_second_listener_for_same_identity_is_rejected(tmp_path) -> None:
 
 def test_router_responds_only_to_machine_requests_or_product_mentions() -> None:
     router = RoomMessageRouter(
-        agent_name="sharedos-commerce-agent", service_base_url=SERVICE_URL
+        agent_name="sharedos-commerce-agent",
+        service_base_url=SERVICE_URL,
+        payment_target=MEMBER_ID,
     )
     ignored = SharedNetMessage(
         sequence=1, message_id="msg_ignore", content="unrelated room chatter"
@@ -202,10 +204,22 @@ def test_router_responds_only_to_machine_requests_or_product_mentions() -> None:
     assert offer["type"] == "service_offer"
     assert offer["reply_to"] == "msg_discover"
     assert {item["price"] for item in offer["services"]} == {6}
+    assert offer["payment"]["target"] == MEMBER_ID
+    assert offer["payment"]["settlement"] == "sharednet-ledger"
+    assert f"pay {MEMBER_ID}" in offer["payment"]["instruction"]
     answer = json.loads(router.reply(question) or "{}")
     assert answer["type"] == "product_answer"
     assert answer["intent"] == "price"
     assert answer["credit_settlement"] == "not_evaluated"
+
+
+def test_router_rejects_an_invalid_payment_target() -> None:
+    with pytest.raises(RuntimeConfigurationError, match="payment_target"):
+        RoomMessageRouter(
+            agent_name="sharedos-commerce-agent",
+            service_base_url=SERVICE_URL,
+            payment_target="not-a-sharednet-address",
+        )
 
 
 async def test_process_once_replies_then_acknowledges(tmp_path) -> None:

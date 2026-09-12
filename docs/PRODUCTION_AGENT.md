@@ -68,7 +68,8 @@ export SHAREDNET_MEMBER_TOKEN='<sni_...>'
 3. 自然语言明确包含产品名、Agent 名或一个服务 ID。
 
 回复使用 `a2a-interaction-intelligence.room.v1` JSON，并包含公开 URL、服务、价格、
-`reply_to` 和 `credit_settlement=not_evaluated`。监听器不会在公开房间发布任何凭据。
+`reply_to`、正式 seat 作为 `payment.target`、官方 pay 命令模板和
+`credit_settlement=not_evaluated`。监听器不会在公开房间发布任何凭据。
 房间内的 `Paid ... (txn_...)` 文字只负责公开交易上下文；必须再用官方 ledger 核对
 transfer ID、收款 principal、金额、room 和 memo 才能认定到账。
 
