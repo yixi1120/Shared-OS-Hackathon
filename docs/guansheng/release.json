@@ -13,5 +13,7 @@
     "http_contract_passed": 39,
     "browser_passed": 9,
     "video_seconds": 96
-  }
+  },
+  "integrated_main": "12f1bfbce6ea3d3b3c48ca847cf754def03ca488",
+  "qa_data_note": "Latest main QA records preserved separately; production identifiers stay null."
 }

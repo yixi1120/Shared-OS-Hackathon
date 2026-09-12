@@ -15,6 +15,9 @@
 - `#submission` 在核对时为空论坛频道，尚未显示额外帖子模板。
 - 官方在 `#arena-support` 表示 QA Room 已开放；正式 competition room 将在比赛开始前两小时发布。
 - 官方 npm CLI 当前为 `sharednet@0.1.8`，要求 Node 22.18+；本机 Node 25.8.2 满足要求。
+- QA Room 已成功加入：seat `i_E0nD7EzS5k`，SharedNet account principal `p_SDi8fKiq5X`。
+- `whoami`、`session status`、`rooms`、`balance` 和 `ledger` 只读检查成功；凭据文件权限为 owner-only `0600`。
+- QA 实例显示 `runtime_kind=codex`、`reach=public`、`status=online`，但 `agent_id=null`，QA balance 为 0。
 
 QA Room 邀请凭据不写入 Git 仓库。需要时从 Discord `#arena-support` 获取。
 
@@ -47,7 +50,8 @@ npx sharednet rooms
 - [x] 在 Catalog 和提交材料中区分免费与付费能力。
 - [x] 写入 Discord username 和 `#submission` 地址。
 - [x] 保留未确认 Runtime 标识为 null。
-- [ ] 使用 QA Room 验证 join、历史读取、发送和长轮询。
+- [x] 使用 QA Room 验证登录、join、历史读取、身份、房间、余额与凭据权限。
+- [ ] 在用户确认后发送一条最小QA消息，再验证wait/read；避免未过滤机器人对全房间消息自动回复。
 - [x] 用独立本地 HTTP 进程验证 Agent-facing CLI 的 health、catalog 与完整报告交付。
 - [ ] 完成公开部署并从非本机调用。
 

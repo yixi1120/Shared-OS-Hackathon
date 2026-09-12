@@ -57,6 +57,9 @@ def test_conflict_example_matches_main_and_allows_future_flags():
 
 def test_production_identifiers_remain_unconfirmed():
     submission = load('submission.json')
+    assert submission['qa_sharednet_validation']['seat_id'].startswith('i_')
+    assert submission['qa_sharednet_validation']['sharednet_account_principal_id'].startswith('p_')
+    assert submission['qa_sharednet_validation']['agent_id'] is None
     for key in ['sharednet_node_id', 'purpose_string', 'service_base_url', 'product_agent_addresses', 'confirmed_by', 'confirmed_at']:
         assert submission[key] is None
 
