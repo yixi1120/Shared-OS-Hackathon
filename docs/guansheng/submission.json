@@ -36,7 +36,7 @@
     }
   ],
   "demo_video": "media/A2A_Interaction_Intelligence_Backup.webm",
-  "demo_scope": "public HTTPS discovery and UI verified; authenticated paid flow and official settlement still pending",
+  "demo_scope": "public HTTPS discovery and UI verified; official credit adapter implemented and live 100-credit grant verified; authenticated service call plus real paid transfer still pending",
   "discord_submission_channel": "submission",
   "field_confirmation": {
     "discord_username": "user confirmed 2026-09-12",
@@ -59,11 +59,16 @@
     "agent_id": null,
     "reach": "public",
     "status_observed": "online",
-    "balance_observed": 0,
+    "balance_observed": 100,
+    "credits_granted_observed": 100,
+    "credits_sent_observed": 0,
+    "credits_received_observed": 0,
+    "credit_grant_code": "HACK100",
+    "credit_ledger_verified_at": "2026-09-12T16:29:48.794Z",
     "send_test": "passed",
     "sent_message_id": "msg_sS44mdor4R",
     "sent_sequence": 61,
     "read_after_send": "passed",
-    "official_answer_status": "pending"
+    "official_answer_status": "credit and seat/tag/principal semantics confirmed; formal competition room pending"
   }
 }
