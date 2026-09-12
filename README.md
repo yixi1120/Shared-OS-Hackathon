@@ -212,12 +212,12 @@ Still-required live-Arena information:
 - other sellers' advertised callable endpoints and payment addresses;
 - the two round briefs and any required critique/ranking message format.
 
-Room secrets must stay outside Git and chat messages. Configure them at runtime with
-`SHAREDNET_ROOM_ID`, `SHAREDNET_INVITE_TOKEN`, and—after the first join—
-`SHAREDNET_MEMBER_TOKEN`. Persist `SHAREDNET_LAST_SEQUENCE` with the member credential
-so a restarted Agent resumes without skipping messages. Seller report outputs continue
-to use `credit_settlement=not_evaluated` because report scoring and payment verification
-are intentionally separate contracts.
+Room secrets must stay outside Git and chat messages. For the competition, run the
+official CLI login and join under the account that owns the 100-credit grant, then give
+the runtime the owner-only credential path through `SHAREDNET_CLI_CREDENTIAL_PATH`.
+Direct invite-token joining creates an anonymous seat and is refused by default. Seller
+report outputs continue to use `credit_settlement=not_evaluated` because report scoring
+and payment verification are intentionally separate contracts.
 
 For an operator-side read-only check using the official CLI:
 
@@ -239,31 +239,42 @@ first; the transfer and receipt are separate operations.
 
 ### Production room listener
 
-`sharednet-agent` is the unattended production entry point. It joins a room once with
-the organizer-issued invite, stores the returned member identity in a private `0600`
-file, resumes that same identity after restart, and consumes messages through the
-durable SQLite inbox. It responds only to versioned discovery/query messages or text
-that names this product. Every reply carries a `reply_to` marker; after an ambiguous
-restart the listener checks the room for that marker before sending again.
+`sharednet-agent` is the unattended production entry point. It imports the account-bound
+seat created by the official CLI, stores the runtime identity in a private `0600` file,
+resumes that same identity after restart, and consumes messages through the durable
+SQLite inbox. It responds only to versioned discovery/query messages or text that names
+this product. Every reply carries a `reply_to` marker; after an ambiguous restart the
+listener checks the room for that marker before sending again.
 Every service offer also publishes the formal `i_...` seat as its `payment.target` and
 an official pay-command template; the target is routing information, never the member
 token credential.
 
-First start with an organizer-issued room invite:
+First, on the same server and Unix account that will run the listener, use the official
+CLI to bind the machine to the credited account and join the formal Room:
+
+```bash
+npx -y sharednet@0.1.8 login
+npx -y sharednet@0.1.8 join '<formal-room-invite>' \
+  --name sharedos-commerce-agent
+npx -y sharednet@0.1.8 whoami --json
+```
+
+Then configure the public service and the CLI-created credential file without copying
+its secret token into the shell or chat:
 
 ```bash
 export SERVICE_BASE_URL=https://modelscope-sharedos.tail81043f.ts.net
 export SHAREDNET_ROOM_ID=rom_from_organizer
-export SHAREDNET_INVITE_TOKEN=rit_from_organizer
+export SHAREDNET_CLI_CREDENTIAL_PATH='/home/service-user/.config/sharednet/rooms/rom_from_organizer/i_formalseat.json'
 uv run sharednet-agent listen --announce
 ```
 
-The invite is not stored. The resulting member token and member/seat ID are saved to
+Use the exact path created for the formal `rom_...` and `i_...` identifiers; the filename
+is `<i_...>.json`. The imported member identity is saved to
 `.sharednet/runtime-identity.json`, while `.sharednet/inbox.sqlite3` retains the receive
-cursor and unacknowledged messages. Both paths must be on persistent storage. On later
-starts the invite can be removed from the environment; the saved member identity is
-reused automatically. To inject a credential from an external secret store instead,
-set both `SHAREDNET_MEMBER_TOKEN` and `SHAREDNET_MEMBER_ID`.
+cursor and unacknowledged messages. Both paths must be on persistent storage. To inject
+a credential from an external secret store instead, set both `SHAREDNET_MEMBER_TOKEN`
+and `SHAREDNET_MEMBER_ID`.
 
 For a non-sending smoke test, omit `--announce` and add `--once --poll-timeout 0`.
 Never place a real `rit_`, `sni_`, seller bearer token, or Arena token in Git, a room

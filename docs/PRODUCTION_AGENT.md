@@ -34,12 +34,23 @@ SharedOS 正式 capability 验证前的安全过渡方案，不会把自报事�
 
 ## 首次启动
 
-在雅婷的持久服务器环境配置以下变量。尖括号内容必须由官方真实信息替换：
+先在雅婷服务器上、以运行监听器的同一个系统用户登录拥有 100 credits 的 SharedNet 账户，
+再用官方 CLI 加入正式房间。这样生成的 seat 从第一条消息起就属于该账户：
+
+```bash
+npx -y sharednet@0.1.8 login
+npx -y sharednet@0.1.8 join '<正式房间邀请>' --name sharedos-commerce-agent
+npx -y sharednet@0.1.8 whoami --json
+```
+
+然后配置以下变量。`SHAREDNET_CLI_CREDENTIAL_PATH` 指向 CLI 创建的 owner-only `0600`
+房间凭据文件，形式为 `<配置目录>/sharednet/rooms/<rom_...>/<i_...>.json`。不要把文件内容
+或 member token 粘贴到聊天、日志或 Git：
 
 ```bash
 export SERVICE_BASE_URL=https://modelscope-sharedos.tail81043f.ts.net
 export SHAREDNET_ROOM_ID='<rom_...>'
-export SHAREDNET_INVITE_TOKEN='<rit_...>'
+export SHAREDNET_CLI_CREDENTIAL_PATH='<绝对路径>/<i_...>.json'
 export SHAREDNET_STATE_PATH=/persistent/sharedos/.sharednet/runtime-identity.json
 export SHAREDNET_INBOX_PATH=/persistent/sharedos/.sharednet/inbox.sqlite3
 
@@ -47,8 +58,9 @@ uv run sharednet-agent listen --announce
 ```
 
 成功后日志只显示 room、member ID 和公开服务地址，不输出 member token。身份文件应为
-`0600`，父目录应为 `0700`。首次 join 成功后，从运行环境移除 invite token；以后会自动
-复用身份文件中的 member token。
+`0600`，父目录应为 `0700`。导入成功后会复用私有身份文件。直接使用 invite token 的 REST
+join 会产生匿名 seat，因此生产环境默认拒绝；只有隔离开发房间才能显式设置
+`SHAREDNET_ALLOW_ANONYMOUS_JOIN=true`。
 
 如果平台负责把 secret 注入环境而不允许本地身份文件保存 token，则同时设置：
 

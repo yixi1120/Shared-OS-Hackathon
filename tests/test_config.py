@@ -25,6 +25,8 @@ def test_settings_defaults_are_concrete_values(monkeypatch) -> None:
         "SHAREDNET_RUNTIME_KIND",
         "SHAREDNET_STATE_PATH",
         "SHAREDNET_INBOX_PATH",
+        "SHAREDNET_CLI_CREDENTIAL_PATH",
+        "SHAREDNET_ALLOW_ANONYMOUS_JOIN",
         "SELLER_AGENT_TOKENS_JSON",
         "OPERATION_JOURNAL_PATH",
         "LEDGER_PATH",
@@ -39,4 +41,6 @@ def test_settings_defaults_are_concrete_values(monkeypatch) -> None:
     assert settings.sharednet_runtime_kind == "codex"
     assert settings.sharednet_state_path == "./.sharednet/runtime-identity.json"
     assert settings.sharednet_inbox_path == "./.sharednet/inbox.sqlite3"
+    assert settings.sharednet_cli_credential_path is None
+    assert settings.sharednet_allow_anonymous_join is False
     assert settings.operation_journal_path == "./outbound-operations.sqlite3"

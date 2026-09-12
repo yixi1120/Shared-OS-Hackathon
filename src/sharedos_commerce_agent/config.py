@@ -4,6 +4,18 @@ import os
 from dataclasses import dataclass, field
 
 
+def _env_flag(name: str, default: bool) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    normalized = value.strip().casefold()
+    if normalized in {"1", "true", "yes", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "off"}:
+        return False
+    raise ValueError(f"{name} must be true or false")
+
+
 @dataclass(frozen=True, slots=True)
 class Settings:
     model_base_url: str = "https://openrouter.ai/api/v1"
@@ -32,6 +44,8 @@ class Settings:
     sharednet_runtime_kind: str = "codex"
     sharednet_state_path: str = "./.sharednet/runtime-identity.json"
     sharednet_inbox_path: str = "./.sharednet/inbox.sqlite3"
+    sharednet_cli_credential_path: str | None = field(default=None, repr=False)
+    sharednet_allow_anonymous_join: bool = False
     seller_api_token: str | None = field(default=None, repr=False)
     seller_agent_tokens_json: str | None = field(default=None, repr=False)
     ledger_path: str = "./commerce.sqlite3"
@@ -91,6 +105,13 @@ class Settings:
             ),
             sharednet_inbox_path=os.getenv(
                 "SHAREDNET_INBOX_PATH", defaults.sharednet_inbox_path
+            ),
+            sharednet_cli_credential_path=(
+                os.getenv("SHAREDNET_CLI_CREDENTIAL_PATH") or None
+            ),
+            sharednet_allow_anonymous_join=_env_flag(
+                "SHAREDNET_ALLOW_ANONYMOUS_JOIN",
+                defaults.sharednet_allow_anonymous_join,
             ),
             seller_api_token=os.getenv("SELLER_API_TOKEN") or None,
             seller_agent_tokens_json=os.getenv("SELLER_AGENT_TOKENS_JSON") or None,

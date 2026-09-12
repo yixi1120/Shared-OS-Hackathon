@@ -17,6 +17,7 @@ from sharedos_commerce_agent.production import (
     SharedNetProductionAgent,
     bootstrap_room_runtime,
     configured_arena_routes,
+    load_cli_room_identity,
 )
 from sharedos_commerce_agent.sharednet_adapter import (
     SharedNetMessage,
@@ -39,6 +40,7 @@ def _settings(tmp_path, **changes) -> Settings:
         "sharednet_state_path": str(tmp_path / "identity.json"),
         "sharednet_inbox_path": str(tmp_path / "inbox.sqlite3"),
         "sharednet_agent_name": "sharedos-commerce-agent",
+        "sharednet_allow_anonymous_join": True,
     }
     values.update(changes)
     return Settings(**values)
@@ -78,6 +80,91 @@ def test_identity_store_rejects_wrong_room_and_repairs_permissions(tmp_path) -> 
     assert stat.S_IMODE(path.stat().st_mode) == 0o600
     with pytest.raises(RuntimeConfigurationError, match="different room"):
         store.load("rom_Different123")
+
+
+def test_cli_room_identity_import_requires_owner_only_account_bound_file(
+    tmp_path,
+) -> None:
+    path = tmp_path / "cli-room.json"
+    path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "base_url": "https://www.sharednet.ai",
+                "room_id": ROOM_ID,
+                "member_id": MEMBER_ID,
+                "name": "sharedos-commerce-agent",
+                "member_token": MEMBER_TOKEN,
+                "joined_at": "2026-09-13T00:00:00Z",
+            }
+        ),
+        encoding="utf-8",
+    )
+    path.chmod(0o600)
+
+    identity = load_cli_room_identity(
+        str(path),
+        room_id=ROOM_ID,
+        sharednet_base_url="https://www.sharednet.ai",
+    )
+    assert identity.member_id == MEMBER_ID
+    assert MEMBER_TOKEN not in repr(identity)
+
+    path.chmod(0o644)
+    with pytest.raises(RuntimeConfigurationError, match="owner-only"):
+        load_cli_room_identity(
+            str(path),
+            room_id=ROOM_ID,
+            sharednet_base_url="https://www.sharednet.ai",
+        )
+
+
+async def test_bootstrap_refuses_anonymous_invite_join_by_default(tmp_path) -> None:
+    settings = _settings(tmp_path, sharednet_allow_anonymous_join=False)
+
+    async def handler(_: httpx.Request) -> httpx.Response:
+        raise AssertionError("unsafe anonymous join must fail before the network")
+
+    with pytest.raises(RuntimeConfigurationError, match="anonymous invite join"):
+        await bootstrap_room_runtime(
+            settings, transport=httpx.MockTransport(handler)
+        )
+
+
+async def test_bootstrap_imports_official_cli_seat_without_join(tmp_path) -> None:
+    credential = tmp_path / "cli-room.json"
+    credential.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "base_url": "https://www.sharednet.ai",
+                "room_id": ROOM_ID,
+                "member_id": MEMBER_ID,
+                "name": "sharedos-commerce-agent",
+                "member_token": MEMBER_TOKEN,
+                "joined_at": "2026-09-13T00:00:00Z",
+            }
+        ),
+        encoding="utf-8",
+    )
+    credential.chmod(0o600)
+    settings = _settings(
+        tmp_path,
+        sharednet_allow_anonymous_join=False,
+        sharednet_cli_credential_path=str(credential),
+    )
+
+    async def handler(_: httpx.Request) -> httpx.Response:
+        raise AssertionError("CLI identity import must not join again")
+
+    runtime = await bootstrap_room_runtime(
+        settings, transport=httpx.MockTransport(handler)
+    )
+    try:
+        assert runtime.identity.member_id == MEMBER_ID
+        assert runtime.agent.router.payment_target == MEMBER_ID
+    finally:
+        await runtime.close()
 
 
 async def test_bootstrap_joins_once_persists_identity_and_history(tmp_path) -> None:

@@ -122,6 +122,63 @@ class RuntimeIdentityStore:
             raise RuntimeConfigurationError("Saved member token is invalid")
 
 
+def load_cli_room_identity(
+    path: str, *, room_id: str, sharednet_base_url: str
+) -> RuntimeIdentity:
+    """Import an account-bound seat created by the official SharedNet CLI.
+
+    The CLI file remains the source credential. We require its owner-only mode and
+    never log or return its token outside the redacted RuntimeIdentity object.
+    """
+
+    target = Path(path)
+    try:
+        info = target.lstat()
+    except OSError as exc:
+        raise RuntimeConfigurationError(
+            f"Cannot read SharedNet CLI credential: {target}"
+        ) from exc
+    if stat.S_ISLNK(info.st_mode) or not stat.S_ISREG(info.st_mode):
+        raise RuntimeConfigurationError(
+            "SharedNet CLI credential must be a regular file"
+        )
+    if info.st_mode & 0o077:
+        raise RuntimeConfigurationError(
+            "SharedNet CLI credential must be owner-only (0600)"
+        )
+    if hasattr(os, "getuid") and info.st_uid != os.getuid():
+        raise RuntimeConfigurationError(
+            "SharedNet CLI credential must be owned by the current user"
+        )
+    try:
+        payload = json.loads(target.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise RuntimeConfigurationError(
+            "SharedNet CLI credential is not valid JSON"
+        ) from exc
+    if not isinstance(payload, dict) or payload.get("schema_version") != 1:
+        raise RuntimeConfigurationError(
+            "SharedNet CLI credential has an unsupported schema"
+        )
+    if str(payload.get("base_url", "")).rstrip("/") != sharednet_base_url.rstrip(
+        "/"
+    ):
+        raise RuntimeConfigurationError(
+            "SharedNet CLI credential belongs to a different origin"
+        )
+    identity = RuntimeIdentity(
+        room_id=str(payload.get("room_id", "")),
+        member_id=str(payload.get("member_id", "")),
+        member_token=str(payload.get("member_token", "")),
+    )
+    if identity.room_id != room_id:
+        raise RuntimeConfigurationError(
+            "SharedNet CLI credential belongs to a different room"
+        )
+    RuntimeIdentityStore._validate(identity)
+    return identity
+
+
 class RuntimeProcessLock:
     """Prevent concurrent joins/listeners for one persisted room identity."""
 
@@ -426,6 +483,18 @@ async def bootstrap_room_runtime(
     try:
         store = RuntimeIdentityStore(settings.sharednet_state_path)
         saved = store.load(room_id)
+        cli_identity = (
+            load_cli_room_identity(
+                settings.sharednet_cli_credential_path,
+                room_id=room_id,
+                sharednet_base_url=settings.sharednet_base_url,
+            )
+            if saved is None and settings.sharednet_cli_credential_path is not None
+            else None
+        )
+        if cli_identity is not None:
+            store.save(cli_identity)
+            saved = cli_identity
         configured_token = settings.sharednet_member_token
         configured_member_id = settings.sharednet_member_id
         if saved is not None and configured_token not in {None, saved.member_token}:
@@ -442,6 +511,11 @@ async def bootstrap_room_runtime(
         if (member_token is None) != (member_id is None):
             raise RuntimeConfigurationError(
                 "SHAREDNET_MEMBER_TOKEN and SHAREDNET_MEMBER_ID must be configured together"
+            )
+        if member_token is None and not settings.sharednet_allow_anonymous_join:
+            raise RuntimeConfigurationError(
+                "Refusing an anonymous invite join. Run the official SharedNet CLI "
+                "under the credited account, then set SHAREDNET_CLI_CREDENTIAL_PATH."
             )
 
         inbox = _private_inbox(settings.sharednet_inbox_path)
