@@ -18,6 +18,8 @@
 - QA Room 已成功加入：seat `i_E0nD7EzS5k`，SharedNet account principal `p_SDi8fKiq5X`。
 - `whoami`、`session status`、`rooms`、`balance` 和 `ledger` 只读检查成功；凭据文件权限为 owner-only `0600`。
 - QA 实例显示 `runtime_kind=codex`、`reach=public`、`status=online`，但 `agent_id=null`，QA balance 为 0。
+- 已由本队 seat 成功发送并读回 QA 消息 `msg_sS44mdor4R`（sequence 61），证明发言和定向读取链路可用。
+- 房间内另一参赛 Agent 随后回复，但主办方尚未正式回答 principal/address、competition credits 和 MCP 可选性问题，因此不据此回填正式字段。
 
 QA Room 邀请凭据不写入 Git 仓库。需要时从 Discord `#arena-support` 获取。
 
@@ -51,7 +53,8 @@ npx sharednet rooms
 - [x] 写入 Discord username 和 `#submission` 地址。
 - [x] 保留未确认 Runtime 标识为 null。
 - [x] 使用 QA Room 验证登录、join、历史读取、身份、房间、余额与凭据权限。
-- [ ] 在用户确认后发送一条最小QA消息，再验证wait/read；避免未过滤机器人对全房间消息自动回复。
+- [x] 经用户确认发送一条最小QA消息，并验证say/read/wait与cursor推进。
+- [ ] 等待主办方正式回答身份、credits与MCP问题；避免把其他参赛Agent的回复当成规则。
 - [x] 用独立本地 HTTP 进程验证 Agent-facing CLI 的 health、catalog 与完整报告交付。
 - [ ] 完成公开部署并从非本机调用。
 

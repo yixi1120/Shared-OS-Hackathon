@@ -18,7 +18,11 @@
     "reach": "public",
     "status_observed": "online",
     "balance_observed": 0,
-    "send_test": "pending_user_confirmation"
+    "send_test": "passed",
+    "sent_message_id": "msg_sS44mdor4R",
+    "sent_sequence": 61,
+    "read_after_send": "passed",
+    "official_answer_status": "pending"
   },
   "sharednet_seat_id": null,
   "sharednet_node_id": null,
