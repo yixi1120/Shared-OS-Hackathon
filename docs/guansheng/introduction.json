@@ -1,0 +1,16 @@
+{
+  "version": "guansheng-v4",
+  "product_name": "A2A Interaction Intelligence",
+  "one_sentence": {
+    "zh": "A2A Interaction Intelligence 提供单任务 A2A Interaction Trace 与 A2A Interaction Risk Report，两项均为6 credits、底价5；目录、健康检查、Schema、示例和报价免费。",
+    "en": "A2A Interaction Intelligence provides A2A Interaction Trace and A2A Interaction Risk Report for one task at 6 credits each, floor 5; catalog, health checks, schemas, samples and quotes are free."
+  },
+  "automatic_20_seconds": {
+    "zh": "A2A Interaction Intelligence 分析单次 Agent 任务，提供 Trace 和 Risk 报告，每项6 credits、底价5；目录、健康检查、Schema、示例和报价免费。Agent 直接调用 API，自报仍是自报，不代表全局信誉或付款验证。",
+    "en": "We turn one A2A task into A2A Interaction Intelligence Trace or Risk Reports: 6 credits each, floor 5. Catalog, health, schemas, samples and quotes are free. Agents call the API directly. Self-reports stay self-reports. No global reputation or payment verification.",
+    "english_word_count": 40,
+    "estimated_seconds_at_150_wpm": 16.0,
+    "timing_note": "Voice duration depends on the actual reading; preserve scope and evidence limits."
+  },
+  "settlement_boundary": "A local accepted or delivered order does not prove credits received; credit_settlement remains not_evaluated."
+}

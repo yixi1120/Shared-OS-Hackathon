@@ -1,0 +1,12 @@
+{
+  "purpose": "Internal integration evidence template; not a V1 report or official receipt schema",
+  "environment": "not_provided",
+  "room_id": null,
+  "task_id": null,
+  "trade_id": null,
+  "report_delivery": {"status": "not_evaluated", "response_reference": null, "schema_check_reference": null},
+  "room_announcement": {"status": "not_evaluated", "message_id": null, "readback_reference": null},
+  "official_credit_transfer": {"status": "not_evaluated", "ledger_record_reference": null, "trusted_retrieval_reference": null, "identity_amount_room_order_checks_reference": null},
+  "v1_report_credit_settlement": "not_evaluated",
+  "note": "All references are absent. Populate from real evidence; unknown payment outcomes require ledger reconciliation before any retry."
+}

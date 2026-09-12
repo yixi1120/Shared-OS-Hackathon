@@ -1,0 +1,12 @@
+{
+  "base_main": "9dff6be664f216769621a6ff6e72e3372581cc3a",
+  "pytest": {
+    "passed": 95,
+    "warnings": 1,
+    "warning": "dependency deprecation"
+  },
+  "http_contract": 39,
+  "browser": 9,
+  "video_seconds": 96,
+  "scope": "local real API; no official credits settlement or online verification"
+}

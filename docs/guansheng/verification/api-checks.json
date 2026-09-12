@@ -1,6 +1,6 @@
 {
-  "checked_at": "2026-09-11T10:30:22.977359+00:00",
-  "base_url": "http://127.0.0.1:8786",
+  "checked_at": "2026-09-12T03:18:02.588254+00:00",
+  "base_url": "http://127.0.0.1:8788",
   "scope": "real local HTTP service; fixture inputs; not Arena settlement",
   "passed": 39,
   "checks": [

@@ -1,5 +1,5 @@
 {
-  "version": "guansheng-v3",
+  "version": "guansheng-v4",
   "pricing_policy_file": "pricing_policy.json",
   "rules": [
     {
@@ -41,5 +41,67 @@
     "first purchase saves integer credits",
     "bundles available",
     "quote/order is settled revenue"
-  ]
+  ],
+  "free_resources": [
+    {
+      "id": "health",
+      "method": "GET",
+      "path": "/health",
+      "price_credits": 0,
+      "authentication": "none"
+    },
+    {
+      "id": "catalog",
+      "method": "GET",
+      "path": "/v1/catalog",
+      "price_credits": 0,
+      "authentication": "none"
+    },
+    {
+      "id": "product_catalog",
+      "method": "GET",
+      "path": "/product/catalog.json",
+      "price_credits": 0,
+      "authentication": "none",
+      "availability": "Dashboard adapter mount"
+    },
+    {
+      "id": "schema",
+      "method": "GET",
+      "path": "/v1/contracts/interaction-v1",
+      "price_credits": 0,
+      "authentication": "none"
+    },
+    {
+      "id": "samples",
+      "method": "GET",
+      "paths": [
+        "/dashboard/success.json",
+        "/dashboard/failure.json",
+        "/dashboard/conflict.json"
+      ],
+      "price_credits": 0,
+      "authentication": "none",
+      "availability": "Dashboard adapter mount",
+      "scope": "Example event inputs only; generating a report from them uses the paid order flow."
+    },
+    {
+      "id": "quote",
+      "method": "POST",
+      "path": "/v1/quotes",
+      "price_credits": 0,
+      "authentication": "Bearer when configured",
+      "creates_order": false,
+      "scope": "Returns an offered report price; quotation does not itself buy a report."
+    }
+  ],
+  "billing_rules": {
+    "report_price_credits": 6,
+    "floor_credits": 5,
+    "free_quote_creates_order": false,
+    "first_purchase_price_credits": 6,
+    "free_sample_is_not_free_report": true,
+    "local_order_is_settlement_proof": false
+  },
+  "intent_answer_file": "faq.json"
 }

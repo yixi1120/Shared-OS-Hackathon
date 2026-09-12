@@ -57,14 +57,27 @@ def test_conflict_example_matches_main_and_allows_future_flags():
 
 def test_production_identifiers_remain_unconfirmed():
     submission = load('submission.json')
-    assert submission['discord_username'] == 'yixi1120_19547'
-    assert submission['discord_submission_channel'] == 'submission'
-    assert submission['discord_submission_url'].endswith('/1547362093592743936')
     assert submission['qa_sharednet_validation']['seat_id'].startswith('i_')
     assert submission['qa_sharednet_validation']['sharednet_account_principal_id'].startswith('p_')
     assert submission['qa_sharednet_validation']['agent_id'] is None
-    for key in ['sharednet_seat_id', 'sharednet_node_id', 'sharedos_principal_id', 'sharedos_agent_address', 'purpose_string', 'service_base_url', 'product_agent_addresses', 'confirmed_by', 'confirmed_at']:
+    for key in ['sharednet_node_id', 'purpose_string', 'service_base_url', 'product_agent_addresses', 'confirmed_by', 'confirmed_at']:
         assert submission[key] is None
+
+
+def test_confirmed_discord_and_pending_environment_fields():
+    s = load('submission.json')
+    assert s['discord_username'] == 'yixi1120_19547'
+    assert s['discord_submission_channel_path'] == 'AICOO → SHAREDOS HACKATHON → #submission'
+    for key in ['sharednet_seat_id', 'sharedos_principal_id', 'sharedos_agent_address', 'service_base_url', 'discord_submission_message_url', 'submitted_at']:
+        assert s[key] is None
+
+
+def test_sales_answers_cover_final_buyer_topics():
+    from sharedos_commerce_agent.sales import SalesPolicy
+    policy = SalesPolicy()
+    for question, intent in [('价格', 'price'), ('隐私', 'privacy'), ('冷启动', 'cold_start'), ('证据来源', 'provenance'), ('刷分', 'gaming'), ('有什么用', 'value'), ('为什么同价', 'risk_difference'), ('服务失败或没有 Artifact', 'failure'), ('哪些免费', 'free_auth')]:
+        assert policy.respond(question).intent == intent
+    assert len(policy.introduction.split()) <= 50
 
 
 def test_catalog_marks_free_and_paid_boundaries():
@@ -76,4 +89,4 @@ def test_catalog_marks_free_and_paid_boundaries():
     }
     assert all(service['access_tier'] == 'paid' for service in catalog['services'])
     assert 'are free' in load('pitch.json')['access_boundary']
-    assert load('faq.json')['answers'][0]['id'] == '0'
+    assert any(a['id'] == 'free_auth' for a in load('faq.json')['answers'])

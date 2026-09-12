@@ -1,52 +1,34 @@
 {
-  "catalog_version": "guansheng-v3-main-3b5b99d",
+  "catalog_version": "guansheng-v4-main-9dff6be",
   "product_name": "A2A Interaction Intelligence",
-  "service_base_url": null,
-  "deployment_confirmation": "pending_yating",
   "pricing_policy_version": "arena-fixed-v1",
   "authentication": "Bearer when configured; obtain credentials through authorized operator channel",
-  "free_capabilities": [
-    {
-      "name": "Health check",
-      "endpoint": "GET /health"
-    },
-    {
-      "name": "Service discovery and pricing catalog",
-      "endpoint": "GET /v1/catalog"
-    },
-    {
-      "name": "Input and output contracts",
-      "endpoint": "GET /v1/contracts/interaction-v1"
-    },
-    {
-      "name": "Service explanation, schemas and examples",
-      "endpoint": "Repository documentation"
-    }
-  ],
   "services": [
     {
       "service_id": "a2a-interaction-trace",
       "name": "A2A Interaction Trace",
-      "access_tier": "paid",
-      "description": "Evaluate one submitted task and return execution metrics, source confidence and risk flags. No payment verification or global reputation.",
+      "description": "Evaluate one submitted task and return execution metrics, source confidence and risk flags. No payment verification or global reputation. Paid report: 6 credits, floor 5. Discovery, schema, samples and quotes are free.",
       "regular_price_credits": 6,
       "first_purchase_price_credits": 6,
       "reservation_price_credits": 5,
       "price_authority": "POST /v1/quotes",
       "input_schema": "input.schema.json",
-      "output_schema": "trace_delivery.schema.json"
+      "output_schema": "trace_delivery.schema.json",
+      "access_type": "paid_report",
+      "access_tier": "paid"
     },
     {
       "service_id": "a2a-interaction-risk-report",
       "name": "A2A Interaction Risk Report",
-      "access_tier": "paid",
-      "description": "Return the same single-task metrics with meaning, not_meaning and bilingual explanations in interpretation.flags. No extra evidence or provenance upgrade.",
+      "description": "Return the same single-task metrics with meaning, not_meaning and bilingual explanations in interpretation.flags. No extra evidence or provenance upgrade. Paid report: 6 credits, floor 5. Discovery, schema, samples and quotes are free.",
       "regular_price_credits": 6,
       "first_purchase_price_credits": 6,
       "reservation_price_credits": 5,
       "price_authority": "POST /v1/quotes",
       "input_schema": "input.schema.json",
-      "output_schema": "risk_delivery.schema.json"
+      "output_schema": "risk_delivery.schema.json",
+      "access_type": "paid_report",
+      "access_tier": "paid"
     }
   ],
   "purchase_flow": [
@@ -67,5 +49,89 @@
     "completed": false,
     "reputation_eligible": false,
     "score_rule": "No 40-point completion contribution; no additional flag penalty."
+  },
+  "free_resources": [
+    {
+      "id": "health",
+      "method": "GET",
+      "path": "/health",
+      "price_credits": 0,
+      "authentication": "none"
+    },
+    {
+      "id": "catalog",
+      "method": "GET",
+      "path": "/v1/catalog",
+      "price_credits": 0,
+      "authentication": "none"
+    },
+    {
+      "id": "product_catalog",
+      "method": "GET",
+      "path": "/product/catalog.json",
+      "price_credits": 0,
+      "authentication": "none",
+      "availability": "Dashboard adapter mount"
+    },
+    {
+      "id": "schema",
+      "method": "GET",
+      "path": "/v1/contracts/interaction-v1",
+      "price_credits": 0,
+      "authentication": "none"
+    },
+    {
+      "id": "samples",
+      "method": "GET",
+      "paths": [
+        "/dashboard/success.json",
+        "/dashboard/failure.json",
+        "/dashboard/conflict.json"
+      ],
+      "price_credits": 0,
+      "authentication": "none",
+      "availability": "Dashboard adapter mount",
+      "scope": "Example event inputs only; generating a report from them uses the paid order flow."
+    },
+    {
+      "id": "quote",
+      "method": "POST",
+      "path": "/v1/quotes",
+      "price_credits": 0,
+      "authentication": "Bearer when configured",
+      "creates_order": false,
+      "scope": "Returns an offered report price; quotation does not itself buy a report."
+    }
+  ],
+  "billing_boundary": "Free discovery and quotation; Trace/Risk report orders are paid services. Local orders declare amounts but do not verify Arena credit settlement.",
+  "agent_quickstart": [
+    "Fetch /v1/catalog and /v1/contracts/interaction-v1 for free. No human webpage review is required.",
+    "Read the input schema; submit 1–200 events for one task and subject, with timezone-aware timestamps.",
+    "Obtain deployment credentials via an authorized channel when required. POST /v1/quotes is free and requires auth if configured.",
+    "Select a paid report, then submit a matching /v1/orders request using the effective quote price and input.",
+    "Retrieve /v1/orders/{trade_id}/deliver. Do not equate report delivery with task success or settled credits."
+  ],
+  "free_capabilities": [
+    {
+      "name": "Health check",
+      "endpoint": "GET /health"
+    },
+    {
+      "name": "Service discovery and pricing catalog",
+      "endpoint": "GET /v1/catalog"
+    },
+    {
+      "name": "Input and output contracts",
+      "endpoint": "GET /v1/contracts/interaction-v1"
+    },
+    {
+      "name": "Service explanation, schemas and examples",
+      "endpoint": "Repository documentation"
+    }
+  ],
+  "service_location": {
+    "source_file": "submission.json",
+    "field": "service_base_url",
+    "rule": "Resolve endpoint paths against the confirmed service_base_url; null means no production address has been confirmed."
   }
 }
