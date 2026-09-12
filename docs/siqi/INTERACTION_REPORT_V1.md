@@ -1,16 +1,18 @@
 # Interaction Intelligence V1 冻结规范
 
+2026-09-12修订 `interaction-v1-event-identity-1`：用户已明确授权事件身份、去重及冲突策略。以下当前规则替代旧V1的重复计数语义；输出字段、评分公式、14项风险和结算值保持兼容。具体迁移与房间消费接口见 [EVENT_IDENTITY_CHANGE.md](EVENT_IDENTITY_CHANGE.md)。
+
 状态：报告、公式、来源和风险规则已冻结；定价方案已获思棋确认并在本地实现（见 PRICING_DECISION.md）。依据：main `566b54e`，2026-09-11 本地核查。合入主分支时追加两项 fail-closed 加固：时间戳必须带时区，冲突终态不得判为完成或进入信誉候选。风险解释共包含原有标记、思棋新增的 7 个标记和集成新增的冲突终态标记。消费者必须允许新增风险值和 interpretation 子字段。
 
 ## 1. 产品真实性与输入边界
 
 公共 Seller 当前分析调用方提供的结构化事件；不是自动执行任意普通任务的可信观测节点。仅出售单次 Trace / Risk Report，不出售全局 Reputation。报告外层 `status=delivered` 是分析产品交付状态；内层 `completed` / `delivered` 是被分析任务状态，二者不混用。输出分数由 telemetry.py 确定计算，无 LLM。所有公共事件均由 seller.py 强制赋为 self_reported；未知字段（包括 provenance）在持久化前丢弃。
 
-正式输入 `InteractionTraceInput={events:[InteractionEventSubmission]}`，1–200 条、同一 task_id 和 subject_agent_id。每条必填 task_id/subject_agent_id（1–256 字符）、stage、occurred_at（datetime）；schema_valid 默认 true；evidence_id/request_hash/artifact_hash 为可选 string|null，最长 256。额外字段忽略。事件本身无 ID、买卖双方认证身份或可信 receipt 验证字段。hash 仅保存，当前不校验 hash 内容或证据可解析性。
+正式输入 `InteractionTraceInput={events:[InteractionEventSubmission]}`，原始请求1–200条、同一task_id和subject_agent_id。每条必填task_id/subject_agent_id（1–256字符）、stage、occurred_at；schema_valid默认true；evidence_id/request_hash/artifact_hash为可选string|null，最长256。新增event_id（可选以兼容旧输入；非null时1–256字符）；新调用方应为每个逻辑事件生成一次稳定ID，重试/转发保留。source_id由可信接入分配，公共请求不能设置，统一为public-submission，provenance仍强制self_reported。输入仍无买卖双方认证身份或可信receipt验证字段，hash内容仍不独立核验。
 
 合法阶段及序号：task_created 0 → request_received 1 → quote_declared 2 → task_started 3 → artifact_delivered 4 → buyer_acknowledged 5 → task_completed/task_failed 6 → disputed 7。quote_declared 是当前代码存在但旧分工文档枚举遗漏的阶段。timeout 不是合法 stage；不能凭空改为 task_failed。无终态的超时只能报告缺终态；明确失败须由真实来源记录 task_failed。
 
-V1 按时间稳定排序，时间相同保留输入次序；检查序号是否非递减。输入列表乱序但时间正确不扣分；同阶段重复允许，不去重。相同完整有序 JSON 输入重复计算输出一致，不依赖当前时间。`occurred_at` 必须包含 `Z` 或明确 UTC offset；无时区时间戳在订单入口返回 422，合法时间统一转换为 UTC。相同时间事件换序不属于相同输入。
+先按来源、任务、主体和event_id去重：同键同规范化内容仅保留首次；同键不同内容拒绝分析并记录冲突，公共API返回409。比较内容包括所有声明字段及可信provenance，时间统一UTC，忽略被模型丢弃的未知字段；缺ID的旧事件使用规范化内容SHA-256作为兼容身份，不能检测内容被改写的旧事件冲突。去重后按时间稳定排序，时间相同保留首次输入次序；阶段序号需非递减。输入列表乱序但时间正确不扣分；不同逻辑事件即使同阶段也保留。相同完整有序JSON输入计算输出一致，不依赖当前时间。occurred_at必须带时区，缺时区在订单入口返回422。相同时间事件换序不属于相同输入。
 
 ## 2. 字段合同
 
@@ -31,8 +33,8 @@ V1 按时间稳定排序，时间相同保留输入次序；检查序号是否�
 | confidence | string/是 | 最弱 provenance 的固定标签 | 同上 | 单次证据来源等级，非统计置信区间 | 否/否 |
 | reputation_eligible | bool/是 | 有单一 completed 或 failed 终态，且每条来源为 platform/observed | 无终态或终态冲突时 false | 仅通过基础候选门槛，未来正式纳入仍须核验第 6 节 | 否/该字段是基础结果 |
 | credit_settlement | string/是，模型默认 not_evaluated | evaluator 不接受结算输入，固定 not_evaluated | 不推断已付款 | 尚未评估可信结算 | 否/否，不以付费买资格 |
-| provenance_counts | object<string,int>/是，模型默认 {} | 所有事件分来源计数，含重复 | 不存在的来源键省略 | 输入记录数，不等于独立任务样本量 | 否/来源决定基础门槛 |
-| evidence_ids | list<string>/是，模型默认 [] | 按输入次序取非空 evidence_id，保留重复 | []；空字符串被忽略 | 待核验引用，不是已验证证据 | 否/未来证据与去重门槛 |
+| provenance_counts | object<string,int>/是，模型默认 {} | 去重后逻辑事件分来源计数 | 不存在的来源键省略 | 逻辑事件数，不等于独立任务样本量 | 否/来源决定基础门槛 |
+| evidence_ids | list<string>/是，模型默认 [] | 按去重后首次输入次序取非空evidence_id；不同逻辑事件仍可引用同一证据 | []；空字符串被忽略 | 待核验引用，不是已验证证据 | 否/未来证据门槛 |
 | risk_flags | list<string>/是，模型默认 [] | 第 4 节依次追加 | [] 在旧版可能出现；新版必有结算未评估 | 诊断标记，不再二次扣分 | 不另扣/不另改 |
 | interpretation | object/仅 Risk Report 必填 | meaning:string，not_meaning:string，flags:list<{flag,zh,en}>；固定代码映射 | Trace 不输出；Risk 必有 | 单次分析含义、非全局信誉/付款声明与逐项解释 | 否/否 |
 
@@ -60,7 +62,7 @@ execution_score = round(clamp(raw,0,100), 2)  # Python round 语义
 
 订单入口现已拒绝无时区时间戳，防止订单先持久化、交付时再因 naive/aware 混算返回 500。完成与失败终态同时出现时，报告增加 `conflicting_terminal_task_state`，completed 与 reputation_eligible 均为 false。
 
-仍未实施的后续建议：固定 20 秒降至零的延迟奖励不适合跨任务比较；可信事件和证据需要去重后再计算比例；负时延不应 clamp 成 0 获得满额奖励；schema_valid 应由验证器证明；缺阶段不应借助完美顺序获得过高基础分。任何继续改分的行为均须更新版本和 golden fixtures。
+本次已实施逻辑事件去重后计算全部指标与比例。仍未实施的后续建议：固定20秒降至零的延迟奖励不适合跨任务比较；负时延不应clamp成0获得满额奖励；schema_valid应由验证器证明；缺阶段不应借助完美顺序获得过高基础分。任何继续改分的行为均须更新版本和golden fixtures。
 
 ## 4. Risk Flags V1
 

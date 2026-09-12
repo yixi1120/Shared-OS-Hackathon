@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from typing import Any, Literal
 
 import httpx
+from .ledger import Ledger
 
 from .models import (
     RankingEntry,
@@ -260,6 +261,25 @@ class SharedNetRoomClient:
         page = _parse_message_page(self._json_object(response))
         self._advance_cursor(page)
         return page
+
+    async def receive_pending(
+        self, inbox: Ledger, *, timeout_seconds: int = 25,
+    ) -> tuple[SharedNetMessage, ...]:
+        """Durable consumer path. Acknowledge only after idempotent handling.
+
+        Raw read/wait remain inspection APIs; use a file-backed inbox for restart
+        recovery. Pending messages are retried until explicitly acknowledged.
+        """
+        pending = inbox.pending_messages(self.room_id)
+        if pending:
+            return tuple(SharedNetMessage(**m) for m in pending)
+        page = await self.wait(after=inbox.message_cursor(self.room_id), timeout_seconds=timeout_seconds)
+        cursor = max([inbox.message_cursor(self.room_id), page.next_cursor or 0] + [m.sequence for m in page.items])
+        try:
+            inbox.receive_messages(self.room_id, [asdict(m) for m in page.items], cursor)
+        except ValueError as exc:
+            raise SharedNetProtocolError(str(exc)) from exc
+        return tuple(SharedNetMessage(**m) for m in inbox.pending_messages(self.room_id))
 
     async def read(
         self,

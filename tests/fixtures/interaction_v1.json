@@ -682,7 +682,7 @@
   },
   {
     "id": "duplicate_event",
-    "proof": "V1 counts duplicates and does not deduplicate evidence IDs.",
+    "proof": "Identical logical events count once, including evidence references and source counts.",
     "events": [
       {
         "task_id": "task-v1",
@@ -750,11 +750,10 @@
       "task_id": "task-v1",
       "subject_agent_id": "subject-v1",
       "provenance_counts": {
-        "self_reported": 5
+        "self_reported": 4
       },
       "evidence_ids": [
         "e0",
-        "e1",
         "e1",
         "e3",
         "e4"

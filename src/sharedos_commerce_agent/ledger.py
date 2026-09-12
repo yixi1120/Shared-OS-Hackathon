@@ -7,7 +7,7 @@ from pathlib import Path
 from threading import RLock
 from typing import Iterator
 
-from .models import OrderStatus, TradeReceipt
+from .models import InteractionEvent, OrderStatus, TradeReceipt
 
 
 class Ledger:
@@ -31,6 +31,9 @@ class Ledger:
             try:
                 yield connection
                 connection.commit()
+            except BaseException:
+                connection.rollback()
+                raise
             finally:
                 if self._memory_connection is None:
                     connection.close()
@@ -55,6 +58,72 @@ class Ledger:
             connection.execute(
                 "CREATE INDEX IF NOT EXISTS idx_trades_buyer_id ON trades(buyer_id)"
             )
+            connection.execute("CREATE TABLE IF NOT EXISTS event_identities (identity_key TEXT PRIMARY KEY, content_hash TEXT NOT NULL)")
+            connection.execute("CREATE TABLE IF NOT EXISTS event_conflicts (id INTEGER PRIMARY KEY, identity_key TEXT NOT NULL, previous_hash TEXT NOT NULL, incoming_hash TEXT NOT NULL, recorded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)")
+            connection.execute("CREATE TABLE IF NOT EXISTS room_inbox (room_id TEXT NOT NULL, message_id TEXT NOT NULL, payload TEXT NOT NULL, acknowledged INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(room_id, message_id))")
+            connection.execute("CREATE TABLE IF NOT EXISTS room_cursors (room_id TEXT PRIMARY KEY, cursor INTEGER NOT NULL)")
+
+    def receive_messages(self, room_id: str, messages: list[dict], cursor: int) -> None:
+        """Save inbox and receive cursor in one transaction before dispatch."""
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            for message in messages:
+                message_id = message.get("message_id")
+                if not message_id:
+                    raise ValueError("room message requires message_id for replay protection")
+                payload = json.dumps(message, sort_keys=True)
+                old = connection.execute("SELECT payload FROM room_inbox WHERE room_id=? AND message_id=?", (room_id, message_id)).fetchone()
+                if old is not None and old[0] != payload:
+                    raise ValueError("room_message_identity_conflict")
+                connection.execute("INSERT OR IGNORE INTO room_inbox(room_id, message_id, payload) VALUES (?, ?, ?)", (room_id, message_id, payload))
+            connection.execute("INSERT INTO room_cursors VALUES (?, ?) ON CONFLICT(room_id) DO UPDATE SET cursor=MAX(cursor, excluded.cursor)", (room_id, cursor))
+
+    def message_cursor(self, room_id: str) -> int:
+        with self._connect() as connection:
+            row = connection.execute("SELECT cursor FROM room_cursors WHERE room_id=?", (room_id,)).fetchone()
+            return row[0] if row else 0
+
+    def pending_messages(self, room_id: str) -> list[dict]:
+        with self._connect() as connection:
+            rows = connection.execute("SELECT payload FROM room_inbox WHERE room_id=? AND acknowledged=0 ORDER BY rowid", (room_id,)).fetchall()
+            return sorted((json.loads(row[0]) for row in rows), key=lambda m: m["sequence"])
+
+    def acknowledge_message(self, room_id: str, message_id: str) -> None:
+        with self._connect() as connection:
+            result = connection.execute("UPDATE room_inbox SET acknowledged=1 WHERE room_id=? AND message_id=?", (room_id, message_id))
+            if result.rowcount != 1:
+                raise KeyError("Cannot acknowledge an unknown room message")
+
+    def validate_events(self, events: list[InteractionEvent]) -> list[InteractionEvent]:
+        """Persist identities atomically; conflicting batches register no new events."""
+        from .event_identity import EventConflictError, identity
+
+        conflict = None
+        unique = []
+        batch = {}
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            for event in events:
+                key, digest = identity(event)
+                row = connection.execute("SELECT content_hash FROM event_identities WHERE identity_key = ?", (key,)).fetchone()
+                previous = batch.get(key, row[0] if row else None)
+                if previous is not None and previous != digest:
+                    connection.execute("INSERT INTO event_conflicts (identity_key, previous_hash, incoming_hash) VALUES (?, ?, ?)", (key, previous, digest))
+                    conflict = (key, previous, digest)
+                    break
+                if key not in batch:
+                    unique.append(event)
+                    batch[key] = digest
+            if conflict is None:
+                connection.executemany("INSERT OR IGNORE INTO event_identities VALUES (?, ?)", batch.items())
+        # Raise after committing the audit entry, so restarts retain the conflict.
+        if conflict is not None:
+            raise EventConflictError(*conflict)
+        return unique
+
+    def event_conflicts(self) -> list[dict]:
+        with self._connect() as connection:
+            return [dict(row) for row in connection.execute("SELECT * FROM event_conflicts ORDER BY id")]
 
     def record(self, receipt: TradeReceipt, *, idempotency_key: str) -> TradeReceipt:
         with self._connect() as connection:

@@ -1,5 +1,7 @@
 # 思棋核查与跨团队交接
 
+历史记录：本文重复计数与缺资料结论来自早期基线；当前事件去重修复见[EVENT_IDENTITY_CHANGE.md](EVENT_IDENTITY_CHANGE.md)，最新交付入口为[README.md](README.md)。
+
 ## 执行摘要
 
 在隔离本地 clone 核查 main `566b54e`（Harden purchase recovery with bilateral reconciliation），初始工作树干净。没有覆盖队友工作、提交远程、注册部署、改变 LangGraph 或数据库。此次冻结单次报告而非全局信誉。正式依据为当前代码；旧材料冲突逐项如下。

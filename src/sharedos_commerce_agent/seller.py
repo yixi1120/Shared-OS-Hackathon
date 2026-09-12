@@ -11,6 +11,7 @@ from .models import (
     EvidenceProvenance,
     InteractionEvent,
     InteractionEventSubmission,
+    InteractionTraceInput,
     OrderStatus,
     Quote,
     QuoteRequest,
@@ -84,6 +85,12 @@ class SellerService:
     ) -> TradeReceipt:
         if service_id not in {item.service_id for item in CATALOG}:
             raise KeyError(f"Unknown service: {service_id}")
+        submissions = InteractionTraceInput.model_validate(input_payload).events
+        events = self.ledger.validate_events([
+            InteractionEvent(**e.model_dump(), provenance=EvidenceProvenance.SELF_REPORTED,
+                             source_id="public-submission") for e in submissions
+        ])
+        input_payload = {"events": [e.model_dump(mode="json", exclude={"provenance", "source_id"}) for e in events]}
         receipt = TradeReceipt(
             buyer_id=buyer_id,
             seller_id=SELLER_ID,
@@ -111,10 +118,11 @@ class SellerService:
             InteractionEvent(
                 **submission.model_dump(),
                 provenance=EvidenceProvenance.SELF_REPORTED,
+                source_id="public-submission",
             )
             for submission in submissions
         ]
-        report = evaluate_interaction_trace(events)
+        report = evaluate_interaction_trace(self.ledger.validate_events(events))
         output = report.model_dump(mode="json")
         if receipt.service_id == "a2a-interaction-risk-report":
             output["interpretation"] = {

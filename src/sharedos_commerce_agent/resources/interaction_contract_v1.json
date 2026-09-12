@@ -4,6 +4,20 @@
       "InteractionEventSubmission": {
         "description": "Untrusted event payload accepted from an external caller.",
         "properties": {
+          "event_id": {
+            "anyOf": [
+              {
+                "maxLength": 256,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Event Id"
+          },
           "task_id": {
             "maxLength": 256,
             "minLength": 1,
@@ -526,5 +540,3 @@
     "type": "object"
   }
 }
-
-

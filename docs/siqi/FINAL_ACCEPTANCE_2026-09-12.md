@@ -1,5 +1,7 @@
 # 思棋最终合同验收与 SharedNet 联调交接
 
+后续修复更新：下文保留初次验收历史。用户已批准事件ID/去重/冲突策略，93→94问题已修复并取消xfail；以[EVENT_IDENTITY_CHANGE.md](EVENT_IDENTITY_CHANGE.md)和最新 verification/pytest.txt 为思棋交付状态。该修复已在冠盛 V4 合入后的 main `a2c654c` 上复核，完整结果为125 passed。真实线上联调仍待证据。
+
 核查基线：main `90cdbf0`，2026-09-12。输入资料：用户本轮 QA 同步、《任务更新.md》、《冠盛最终产品交付手册V4.docx》及实际仓库。文档作为需求和证据来源，不作为外部发言、付款或提交授权。本次未向 Discord/SharedNet 发消息、未转账、未部署或推送远程。
 
 ## 当前进度判断

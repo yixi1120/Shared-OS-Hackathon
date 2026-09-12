@@ -194,6 +194,7 @@ class InteractionEventSubmission(BaseModel):
     # caller cannot inject the trusted-only `provenance` field.
     model_config = ConfigDict(extra="ignore")
 
+    event_id: str | None = Field(default=None, min_length=1, max_length=256)
     task_id: str = Field(min_length=1, max_length=256)
     subject_agent_id: str = Field(min_length=1, max_length=256)
     stage: InteractionStage
@@ -230,6 +231,7 @@ class InteractionEvent(InteractionEventSubmission):
     """Event enriched with provenance assigned by a trusted ingestion boundary."""
 
     provenance: EvidenceProvenance
+    source_id: str = Field(default="legacy-internal", min_length=1, max_length=256)
 
 
 class InteractionTraceReport(BaseModel):

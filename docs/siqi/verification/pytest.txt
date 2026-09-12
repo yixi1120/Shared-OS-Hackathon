@@ -1,0 +1,154 @@
+........................................................................ [ 58%]
+...................................................                      [100%]
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/starlette/testclient.py:53
+  /Users/seeky/Documents/ChatGPT/黑客松agent/project/.venv/lib/python3.12/site-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+==================================== PASSES ====================================
+___________ test_conflict_fails_before_analysis_and_logs_only_hashes ___________
+------------------------------ Captured log call -------------------------------
+WARNING  sharedos_commerce_agent.event_identity:event_identity.py:15 event_identity_conflict key_hash=05ad32ecb686cd87f8a4f0d9ecfcc9c5ecd218aeec236e760bf773efbc3e71c1 previous=198136ea5cddde6de3c2f32d3fa38799105986dcf7dd2759ab085e0deb3c0654 incoming=4610f79d2accec76c0bf3759b3a0ec3fc9ff93d86b15377435aec6273773dcc6
+____________ test_registry_restart_conflict_audit_and_atomic_batch _____________
+------------------------------ Captured log call -------------------------------
+WARNING  sharedos_commerce_agent.event_identity:event_identity.py:15 event_identity_conflict key_hash=05ad32ecb686cd87f8a4f0d9ecfcc9c5ecd218aeec236e760bf773efbc3e71c1 previous=198136ea5cddde6de3c2f32d3fa38799105986dcf7dd2759ab085e0deb3c0654 incoming=4610f79d2accec76c0bf3759b3a0ec3fc9ff93d86b15377435aec6273773dcc6
+________________ test_two_connections_cannot_overwrite_identity ________________
+------------------------------ Captured log call -------------------------------
+WARNING  sharedos_commerce_agent.event_identity:event_identity.py:15 event_identity_conflict key_hash=05ad32ecb686cd87f8a4f0d9ecfcc9c5ecd218aeec236e760bf773efbc3e71c1 previous=4610f79d2accec76c0bf3759b3a0ec3fc9ff93d86b15377435aec6273773dcc6 incoming=198136ea5cddde6de3c2f32d3fa38799105986dcf7dd2759ab085e0deb3c0654
+___ test_public_conflict_is_409_persisted_and_spoofed_source_does_not_bypass ___
+------------------------------ Captured log call -------------------------------
+WARNING  sharedos_commerce_agent.event_identity:event_identity.py:15 event_identity_conflict key_hash=d2b94e5409cfb7516870037122466201e333ddbe2c85f8aa3a7fe064c46975db previous=198136ea5cddde6de3c2f32d3fa38799105986dcf7dd2759ab085e0deb3c0654 incoming=4610f79d2accec76c0bf3759b3a0ec3fc9ff93d86b15377435aec6273773dcc6
+___________ test_checkpoint_resume_reuses_purchase_idempotency_keys ____________
+------------------------------ Captured log call -------------------------------
+WARNING  langgraph.checkpoint.serde.jsonplus:jsonplus.py:79 Deserializing unregistered type sharedos_commerce_agent.models.ArenaRunMode from checkpoint. This will be blocked in a future version. Set LANGGRAPH_STRICT_MSGPACK=true to block now, or add to allowed_msgpack_modules to allow explicitly: [('sharedos_commerce_agent.models', 'ArenaRunMode')]
+WARNING  langgraph.checkpoint.serde.jsonplus:jsonplus.py:79 Deserializing unregistered type sharedos_commerce_agent.models.RoundName from checkpoint. This will be blocked in a future version. Set LANGGRAPH_STRICT_MSGPACK=true to block now, or add to allowed_msgpack_modules to allow explicitly: [('sharedos_commerce_agent.models', 'RoundName')]
+WARNING  langgraph.checkpoint.serde.jsonplus:jsonplus.py:79 Deserializing unregistered type sharedos_commerce_agent.models.OrderStatus from checkpoint. This will be blocked in a future version. Set LANGGRAPH_STRICT_MSGPACK=true to block now, or add to allowed_msgpack_modules to allow explicitly: [('sharedos_commerce_agent.models', 'OrderStatus')]
+WARNING  langgraph.checkpoint.serde.jsonplus:jsonplus.py:79 Deserializing unregistered type sharedos_commerce_agent.models.ArenaProgress from checkpoint. This will be blocked in a future version. Set LANGGRAPH_STRICT_MSGPACK=true to block now, or add to allowed_msgpack_modules to allow explicitly: [('sharedos_commerce_agent.models', 'ArenaProgress')]
+WARNING  langgraph.checkpoint.serde.jsonplus:jsonplus.py:79 Deserializing unregistered type sharedos_commerce_agent.models.ServiceListing from checkpoint. This will be blocked in a future version. Set LANGGRAPH_STRICT_MSGPACK=true to block now, or add to allowed_msgpack_modules to allow explicitly: [('sharedos_commerce_agent.models', 'ServiceListing')]
+WARNING  langgraph.checkpoint.serde.jsonplus:jsonplus.py:79 Deserializing unregistered type sharedos_commerce_agent.models.PurchaseIntent from checkpoint. This will be blocked in a future version. Set LANGGRAPH_STRICT_MSGPACK=true to block now, or add to allowed_msgpack_modules to allow explicitly: [('sharedos_commerce_agent.models', 'PurchaseIntent')]
+=========================== short test summary info ============================
+PASSED tests/test_api.py::test_quote_negotiate_order_and_delivery
+PASSED tests/test_api.py::test_catalog_exposes_machine_readable_contract_and_current_pricing
+PASSED tests/test_api.py::test_configured_bearer_token_protects_non_discovery_endpoints
+PASSED tests/test_api.py::test_order_input_rejects_mixed_tasks_before_it_is_persisted
+PASSED tests/test_api.py::test_order_input_rejects_naive_timestamp_before_it_is_persisted
+PASSED tests/test_client_cli.py::test_agent_client_reads_free_endpoints_and_delivers_paid_report
+PASSED tests/test_config.py::test_settings_defaults_are_concrete_values
+PASSED tests/test_event_identity.py::test_explicit_replays_preserve_all_metrics[1-True]
+PASSED tests/test_event_identity.py::test_explicit_replays_preserve_all_metrics[1-False]
+PASSED tests/test_event_identity.py::test_explicit_replays_preserve_all_metrics[20-True]
+PASSED tests/test_event_identity.py::test_explicit_replays_preserve_all_metrics[20-False]
+PASSED tests/test_event_identity.py::test_different_ids_are_distinct_and_sources_tasks_subjects_are_scoped
+PASSED tests/test_event_identity.py::test_conflict_fails_before_analysis_and_logs_only_hashes
+PASSED tests/test_event_identity.py::test_normalization_legacy_compatibility_and_empty_id
+PASSED tests/test_event_identity.py::test_registry_restart_conflict_audit_and_atomic_batch
+PASSED tests/test_event_identity.py::test_two_connections_cannot_overwrite_identity
+PASSED tests/test_event_identity.py::test_public_conflict_is_409_persisted_and_spoofed_source_does_not_bypass
+PASSED tests/test_event_identity.py::test_room_message_replay_ack_and_restart_are_separate_from_events
+PASSED tests/test_event_identity.py::test_room_missing_or_changed_id_rejects_without_cursor_commit
+PASSED tests/test_graph.py::test_graph_exposes_business_nodes_in_execution_order
+PASSED tests/test_graph.py::test_conditional_edge_fails_closed_when_discovery_is_insufficient
+PASSED tests/test_graph.py::test_critique_round_does_not_spend_market_credits
+PASSED tests/test_graph.py::test_service_evaluations_run_with_bounded_concurrency
+PASSED tests/test_graph.py::test_market_round_skips_critique_actions
+PASSED tests/test_graph.py::test_checkpoint_resume_reuses_purchase_idempotency_keys
+PASSED tests/test_graph.py::test_sqlite_checkpoint_survives_graph_recreation
+PASSED tests/test_graph.py::test_bilateral_confirmation_is_recorded_but_not_counted_as_settlement
+PASSED tests/test_graph.py::test_mismatched_bilateral_evidence_is_disputed
+PASSED tests/test_graph.py::test_persistent_runner_wires_both_checkpoint_and_operation_journal
+PASSED tests/test_guansheng_materials.py::test_risk_meanings_and_catalog_match_current_contract
+PASSED tests/test_guansheng_materials.py::test_published_schemas_preserve_runtime_validation
+PASSED tests/test_guansheng_materials.py::test_conflict_example_matches_main_and_allows_future_flags
+PASSED tests/test_guansheng_materials.py::test_production_identifiers_remain_unconfirmed
+PASSED tests/test_guansheng_materials.py::test_catalog_marks_free_and_paid_boundaries
+PASSED tests/test_harness.py::test_full_arena_harness_is_compliant
+PASSED tests/test_harness.py::test_fault_injection_suite_matches_expectations
+PASSED tests/test_interaction_v1_contract.py::test_frozen_report[success_self_reported]
+PASSED tests/test_interaction_v1_contract.py::test_frozen_report[missing_artifact]
+PASSED tests/test_interaction_v1_contract.py::test_frozen_report[explicit_failure]
+PASSED tests/test_interaction_v1_contract.py::test_frozen_report[stage_order]
+PASSED tests/test_interaction_v1_contract.py::test_frozen_report[partial_schema]
+PASSED tests/test_interaction_v1_contract.py::test_frozen_report[dispute]
+PASSED tests/test_interaction_v1_contract.py::test_frozen_report[single_event]
+PASSED tests/test_interaction_v1_contract.py::test_frozen_report[observed_success]
+PASSED tests/test_interaction_v1_contract.py::test_frozen_report[mixed_trusted]
+PASSED tests/test_interaction_v1_contract.py::test_frozen_report[mixed_bilateral]
+PASSED tests/test_interaction_v1_contract.py::test_frozen_report[duplicate_event]
+PASSED tests/test_interaction_v1_contract.py::test_frozen_report[missing_start]
+PASSED tests/test_interaction_v1_contract.py::test_frozen_report[missing_references]
+PASSED tests/test_interaction_v1_contract.py::test_frozen_report[mixed_untrusted]
+PASSED tests/test_interaction_v1_contract.py::test_frozen_report[platform_success]
+PASSED tests/test_interaction_v1_contract.py::test_frozen_report[long_latency]
+PASSED tests/test_interaction_v1_contract.py::test_frozen_report[conflicting_terminals]
+PASSED tests/test_interaction_v1_contract.py::test_every_frozen_flag_has_a_case
+PASSED tests/test_interaction_v1_contract.py::test_failed_task_report_is_delivered[a2a-interaction-trace]
+PASSED tests/test_interaction_v1_contract.py::test_failed_task_report_is_delivered[a2a-interaction-risk-report]
+PASSED tests/test_interaction_v1_contract.py::test_frozen_schemas_and_forbidden_scoring_inputs
+PASSED tests/test_interaction_v1_contract.py::test_packaged_contract_matches_reviewable_document_copy
+PASSED tests/test_interaction_v1_contract.py::test_invalid_structure_is_rejected[events0]
+PASSED tests/test_interaction_v1_contract.py::test_invalid_structure_is_rejected[events1]
+PASSED tests/test_interaction_v1_contract.py::test_wire_schema_enforces_required_fields_and_unevaluated_settlement
+PASSED tests/test_ledger.py::test_ledger_is_idempotent
+PASSED tests/test_ledger.py::test_idempotency_key_cannot_be_reused_for_a_different_order
+PASSED tests/test_operation_journal.py::test_sqlite_journal_persists_intent_and_receipt_across_instances
+PASSED tests/test_operation_journal.py::test_journal_rejects_idempotency_key_reuse_with_different_intent
+PASSED tests/test_operation_journal.py::test_settled_operation_cannot_be_downgraded_to_unknown
+PASSED tests/test_pricing_v1.py::test_catalog_budget_and_quote[a2a-interaction-trace-0]
+PASSED tests/test_pricing_v1.py::test_catalog_budget_and_quote[a2a-interaction-trace-4]
+PASSED tests/test_pricing_v1.py::test_catalog_budget_and_quote[a2a-interaction-trace-5]
+PASSED tests/test_pricing_v1.py::test_catalog_budget_and_quote[a2a-interaction-trace-6]
+PASSED tests/test_pricing_v1.py::test_catalog_budget_and_quote[a2a-interaction-trace-100]
+PASSED tests/test_pricing_v1.py::test_catalog_budget_and_quote[a2a-interaction-risk-report-0]
+PASSED tests/test_pricing_v1.py::test_catalog_budget_and_quote[a2a-interaction-risk-report-4]
+PASSED tests/test_pricing_v1.py::test_catalog_budget_and_quote[a2a-interaction-risk-report-5]
+PASSED tests/test_pricing_v1.py::test_catalog_budget_and_quote[a2a-interaction-risk-report-6]
+PASSED tests/test_pricing_v1.py::test_catalog_budget_and_quote[a2a-interaction-risk-report-100]
+PASSED tests/test_pricing_v1.py::test_modifiers_never_reprice[True]
+PASSED tests/test_pricing_v1.py::test_modifiers_never_reprice[False]
+PASSED tests/test_pricing_v1.py::test_counter_close_and_new_quote
+PASSED tests/test_pricing_v1.py::test_accept_and_order_binding[5-100-5]
+PASSED tests/test_pricing_v1.py::test_accept_and_order_binding[6-100-6]
+PASSED tests/test_pricing_v1.py::test_accept_and_order_binding[6-5-5]
+PASSED tests/test_pricing_v1.py::test_legacy_quote_terms_survive_policy_change
+PASSED tests/test_pricing_v1.py::test_expired_quote_rejects_negotiation_and_order
+PASSED tests/test_sales.py::test_sales_policy_covers_core_buyer_questions_without_a_model
+PASSED tests/test_sales.py::test_sales_content_preserves_product_boundaries
+PASSED tests/test_sales.py::test_arena_runner_exposes_machine_readable_sales_policy
+PASSED tests/test_seller_harness.py::test_concurrent_seller_harness_isolation_and_recovery[3]
+PASSED tests/test_seller_harness.py::test_concurrent_seller_harness_isolation_and_recovery[17]
+PASSED tests/test_seller_harness.py::test_concurrent_seller_harness_isolation_and_recovery[41]
+PASSED tests/test_seller_harness.py::test_soak_mode_streams_progress_without_retaining_every_outcome
+PASSED tests/test_seller_harness.py::test_distinct_run_ids_can_share_a_persistent_ledger
+PASSED tests/test_sharednet_adapter.py::test_join_uses_invite_once_and_tracks_history_cursor
+PASSED tests/test_sharednet_adapter.py::test_say_uses_member_token_without_advancing_receive_cursor
+PASSED tests/test_sharednet_adapter.py::test_wait_defaults_to_receive_cursor_and_advances_it
+PASSED tests/test_sharednet_adapter.py::test_read_filters_history_without_consuming_wait_cursor
+PASSED tests/test_sharednet_adapter.py::test_room_operations_require_a_member_token
+PASSED tests/test_sharednet_adapter.py::test_invalid_join_payload_does_not_install_a_credential
+PASSED tests/test_sharednet_adapter.py::test_read_rejects_ambiguous_cursor_combinations
+PASSED tests/test_siqi_final_acceptance.py::test_public_delivery_contract_and_replay[a2a-interaction-trace-success_self_reported]
+PASSED tests/test_siqi_final_acceptance.py::test_public_delivery_contract_and_replay[a2a-interaction-trace-explicit_failure]
+PASSED tests/test_siqi_final_acceptance.py::test_public_delivery_contract_and_replay[a2a-interaction-trace-missing_artifact]
+PASSED tests/test_siqi_final_acceptance.py::test_public_delivery_contract_and_replay[a2a-interaction-trace-single_event]
+PASSED tests/test_siqi_final_acceptance.py::test_public_delivery_contract_and_replay[a2a-interaction-trace-conflicting_terminals]
+PASSED tests/test_siqi_final_acceptance.py::test_public_delivery_contract_and_replay[a2a-interaction-trace-stage_order]
+PASSED tests/test_siqi_final_acceptance.py::test_public_delivery_contract_and_replay[a2a-interaction-trace-partial_schema]
+PASSED tests/test_siqi_final_acceptance.py::test_public_delivery_contract_and_replay[a2a-interaction-risk-report-success_self_reported]
+PASSED tests/test_siqi_final_acceptance.py::test_public_delivery_contract_and_replay[a2a-interaction-risk-report-explicit_failure]
+PASSED tests/test_siqi_final_acceptance.py::test_public_delivery_contract_and_replay[a2a-interaction-risk-report-missing_artifact]
+PASSED tests/test_siqi_final_acceptance.py::test_public_delivery_contract_and_replay[a2a-interaction-risk-report-single_event]
+PASSED tests/test_siqi_final_acceptance.py::test_public_delivery_contract_and_replay[a2a-interaction-risk-report-conflicting_terminals]
+PASSED tests/test_siqi_final_acceptance.py::test_public_delivery_contract_and_replay[a2a-interaction-risk-report-stage_order]
+PASSED tests/test_siqi_final_acceptance.py::test_public_delivery_contract_and_replay[a2a-interaction-risk-report-partial_schema]
+PASSED tests/test_siqi_final_acceptance.py::test_arrival_order_does_not_change_metrics_with_distinct_timestamps
+PASSED tests/test_siqi_final_acceptance.py::test_acceptance_duplicate_event_must_not_raise_score
+PASSED tests/test_siqi_final_acceptance.py::test_actual_accepted_price_does_not_change_report[a2a-interaction-trace]
+PASSED tests/test_siqi_final_acceptance.py::test_actual_accepted_price_does_not_change_report[a2a-interaction-risk-report]
+PASSED tests/test_strategy.py::test_quote_and_negotiation_respect_floor
+PASSED tests/test_strategy.py::test_market_plan_satisfies_arena_rules
+PASSED tests/test_strategy.py::test_market_plan_fails_closed_without_three_products
+PASSED tests/test_telemetry.py::test_observed_trace_is_reputation_eligible
+PASSED tests/test_telemetry.py::test_perfect_self_report_cannot_become_reputation_evidence
+PASSED tests/test_telemetry.py::test_failed_or_malformed_trace_exposes_objective_risk_flags
+123 passed, 1 warning in 1.13s

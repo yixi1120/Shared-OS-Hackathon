@@ -179,6 +179,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             return seller.deliver(trade_id)
         except KeyError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
 
     @app.get(
         "/v1/orders/{trade_id}",

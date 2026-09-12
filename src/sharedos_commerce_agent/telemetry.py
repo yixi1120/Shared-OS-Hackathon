@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import Counter
+from .event_identity import deduplicate_events
 
 from .models import (
     EvidenceProvenance,
@@ -49,6 +50,7 @@ def evaluate_interaction_trace(
     if len(task_ids) != 1 or len(subjects) != 1:
         raise ValueError("all events must belong to one task and subject agent")
 
+    events = deduplicate_events(events)
     chronological = sorted(events, key=lambda event: event.occurred_at)
     stage_positions = [_STAGE_ORDER[event.stage] for event in chronological]
     ordered = stage_positions == sorted(stage_positions)
