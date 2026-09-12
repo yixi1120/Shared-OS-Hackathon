@@ -28,6 +28,9 @@ tested end to end without a paid model key.
 - Writes every outbound purchase intent to a separate SQLite operation journal before
   contacting the Arena, then reconciles ambiguous results against the platform receipt
   and matching buyer-debit/seller-credit ledger entries.
+- Implements SharedNet's official credit balance, transfer and ledger endpoints. Payment
+  and room announcement use separate deterministic idempotency keys, so a confirmed
+  debit is never repeated merely because posting the public receipt failed.
 
 ```mermaid
 flowchart LR
@@ -124,8 +127,10 @@ Its temporary service-order sequence is:
 The temporary commerce adapter accepts a list of consented A2A task events. Caller-submitted
 events are always marked `self_reported`; a caller cannot label its own data as verified.
 Raw prompts and private payload contents are excluded in favor of hashes and minimum metadata.
-Credit settlement remains the Arena's responsibility and is reported as `not_evaluated`
-until an organizer-provided receipt contract is available.
+Credit settlement remains separate from the report's evidence score. The analytical V1
+report therefore keeps `credit_settlement=not_evaluated`; the runtime verifies official
+SharedNet transfers independently and never upgrades self-reported interaction evidence
+because credits changed hands.
 
 Set `SELLER_API_TOKEN` in any networked deployment. The catalog remains public for
 discovery, while quote, negotiation, order, delivery, and order lookup endpoints require
@@ -177,31 +182,60 @@ Cost controls:
 
 ## SharedNet integration boundary
 
-SharedNet's published `sharednet.room.v1` protocol is now implemented by
+SharedNet room transport and official credit settlement are implemented by
 `SharedNetRoomClient`. Given an organizer-issued `ROOM=rom_...` and `TOKEN=rit_...`, it
 can join the room, retain the returned `sni_...` member credential, read history, send
-messages, and long-poll in canonical `sequence` order. A sent message deliberately does
-not advance the receive cursor, so concurrent messages cannot be skipped.
+messages, long-poll in canonical `sequence` order, read the authenticated balance and
+ledger, make an idempotent transfer, and verify an incoming transfer against recipient,
+amount, room and memo. A sent message deliberately does not advance the receive cursor,
+so concurrent messages cannot be skipped.
 
-The room transport and the Arena business protocol are separate. SharedNet's current
-OpenAPI document contains no product, critique, ranking, purchase, payment, or credits
-routes. `SharedNetRoomClient` therefore does not pretend to implement `ArenaClient`, and
-the older `HttpArenaClient` remains a provisional adapter until the organizer publishes
-the competition message/schema contract.
+The official identity meanings are distinct: `i_...` is a callable seat, `a_...` is a
+role/tag address, and `p_...` is the account principal that receives credits. A seat ID
+is public routing information, not a credential. Discovery is the Arena Room roster;
+SharedNet deliberately has no global product registry.
 
-Still-required organizer contract operations:
+Payment uses `POST /api/v1/credits/transfers` with an idempotency key. `--room` semantics
+bind the transfer to the current Room and then post a separate human-readable receipt.
+If that second post fails, the transfer remains final. The client returns a warning and
+forbids interpreting the missing room message as payment failure. The official ledger,
+not the room message or local SQLite order, is settlement evidence.
 
-- discover services;
-- invoke a product during evaluation;
-- post a critique;
-- submit rankings;
-- buy a service and receive a settlement receipt.
+Product discovery, product invocation and the competition's critique/ranking behavior
+remain room/application protocols rather than REST routes. `HttpArenaClient` is retained
+only for a future organizer-supplied business API; the live Agent should use the Room
+roster/messages and each seller's advertised MCP, CLI or HTTPS interface.
+
+Still-required live-Arena information:
+
+- the formal Room invite and resulting formal `i_...` seat;
+- other sellers' advertised callable endpoints and payment addresses;
+- the two round briefs and any required critique/ranking message format.
 
 Room secrets must stay outside Git and chat messages. Configure them at runtime with
 `SHAREDNET_ROOM_ID`, `SHAREDNET_INVITE_TOKEN`, and—after the first join—
 `SHAREDNET_MEMBER_TOKEN`. Persist `SHAREDNET_LAST_SEQUENCE` with the member credential
-so a restarted Agent resumes without skipping messages. Until a signed Arena settlement
-contract exists, seller outputs continue to report `credit_settlement=not_evaluated`.
+so a restarted Agent resumes without skipping messages. Seller report outputs continue
+to use `credit_settlement=not_evaluated` because report scoring and payment verification
+are intentionally separate contracts.
+
+For an operator-side read-only check using the official CLI:
+
+```bash
+npx -y sharednet@0.1.8 balance --json
+npx -y sharednet@0.1.8 ledger --last 100 --json
+```
+
+For a payment made where the trade was agreed, always include a stable order reference
+in the memo and announce it to the Room:
+
+```bash
+npx -y sharednet@0.1.8 pay p_XXXXXXXXXX 6 \
+  --memo "a2a-interaction-risk order=<stable-order-id>" --room --json
+```
+
+Never repeat this command merely because the room receipt is absent. Query the ledger
+first; the transfer and receipt are separate operations.
 
 ### Production room listener
 

@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
+import re
 from typing import Any, Literal
+from uuid import NAMESPACE_URL, uuid5
 
 import httpx
-from .ledger import Ledger
 
+from .ledger import Ledger
 from .models import (
     RankingEntry,
     ServiceListing,
@@ -50,6 +52,43 @@ class SharedNetJoinResult:
     )
 
 
+@dataclass(frozen=True, slots=True)
+class SharedNetCreditBalance:
+    principal_id: str
+    balance: int
+    granted: int
+    sent: int
+    received: int
+
+
+@dataclass(frozen=True, slots=True)
+class SharedNetTransfer:
+    transfer_id: str
+    from_principal_id: str | None
+    to_principal_id: str
+    amount: int
+    memo: str | None
+    room_id: str | None
+    by_instance_id: str | None
+    addressed_to: str
+    code: str | None
+    created_at: str
+
+
+@dataclass(frozen=True, slots=True)
+class SharedNetLedgerPage:
+    items: tuple[SharedNetTransfer, ...]
+    next_cursor: str | None
+    has_more: bool
+
+
+@dataclass(frozen=True, slots=True)
+class SharedNetPaymentResult:
+    transfer: SharedNetTransfer
+    room_receipt: SharedNetMessage | None
+    warning: str | None = None
+
+
 def _optional_string(payload: dict[str, Any], *keys: str) -> str | None:
     for key in keys:
         value = payload.get(key)
@@ -70,6 +109,98 @@ def _parse_cursor(value: Any) -> int | None:
     if cursor < 0:
         raise SharedNetProtocolError("SharedNet cursor cannot be negative")
     return cursor
+
+
+def _non_negative_integer(payload: dict[str, Any], key: str) -> int:
+    value = payload.get(key)
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        raise SharedNetProtocolError(f"SharedNet {key} must be a non-negative integer")
+    return value
+
+
+def _parse_credit_balance(payload: Any) -> SharedNetCreditBalance:
+    if not isinstance(payload, dict):
+        raise SharedNetProtocolError("SharedNet credit balance must be a JSON object")
+    principal_id = _optional_string(payload, "principal_id")
+    if principal_id is None or not re.fullmatch(r"p_[0-9A-Za-z]{10}", principal_id):
+        raise SharedNetProtocolError("SharedNet balance is missing its principal_id")
+    return SharedNetCreditBalance(
+        principal_id=principal_id,
+        balance=_non_negative_integer(payload, "balance"),
+        granted=_non_negative_integer(payload, "granted"),
+        sent=_non_negative_integer(payload, "sent"),
+        received=_non_negative_integer(payload, "received"),
+    )
+
+
+def _parse_transfer(payload: Any) -> SharedNetTransfer:
+    if not isinstance(payload, dict):
+        raise SharedNetProtocolError("SharedNet transfer must be a JSON object")
+    transfer_id = _optional_string(payload, "id", "transfer_id")
+    to_principal_id = _optional_string(payload, "to_principal_id")
+    addressed_to = _optional_string(payload, "addressed_to")
+    created_at = _optional_string(payload, "created_at")
+    if transfer_id is None or not re.fullmatch(r"txn_[0-9A-Za-z]{10}", transfer_id):
+        raise SharedNetProtocolError("SharedNet transfer is missing a valid txn_ id")
+    if to_principal_id is None or not re.fullmatch(
+        r"p_[0-9A-Za-z]{10}", to_principal_id
+    ):
+        raise SharedNetProtocolError("SharedNet transfer is missing to_principal_id")
+    if addressed_to is None or not re.fullmatch(
+        r"(?:p|a|i)_[0-9A-Za-z]{10}", addressed_to
+    ):
+        raise SharedNetProtocolError("SharedNet transfer is missing addressed_to")
+    if created_at is None:
+        raise SharedNetProtocolError("SharedNet transfer is missing created_at")
+    amount = _non_negative_integer(payload, "amount")
+    if amount < 1:
+        raise SharedNetProtocolError("SharedNet transfer amount must be at least 1")
+
+    from_principal_id = _optional_string(payload, "from_principal_id")
+    if from_principal_id is not None and not re.fullmatch(
+        r"p_[0-9A-Za-z]{10}", from_principal_id
+    ):
+        raise SharedNetProtocolError("SharedNet transfer has invalid from_principal_id")
+    room_id = _optional_string(payload, "room_id")
+    if room_id is not None and not re.fullmatch(r"rom_[0-9A-Za-z]{10}", room_id):
+        raise SharedNetProtocolError("SharedNet transfer has invalid room_id")
+    by_instance_id = _optional_string(payload, "by_instance_id")
+    if by_instance_id is not None and not re.fullmatch(
+        r"i_[0-9A-Za-z]{10}", by_instance_id
+    ):
+        raise SharedNetProtocolError("SharedNet transfer has invalid by_instance_id")
+
+    return SharedNetTransfer(
+        transfer_id=transfer_id,
+        from_principal_id=from_principal_id,
+        to_principal_id=to_principal_id,
+        amount=amount,
+        memo=_optional_string(payload, "memo"),
+        room_id=room_id,
+        by_instance_id=by_instance_id,
+        addressed_to=addressed_to,
+        code=_optional_string(payload, "code"),
+        created_at=created_at,
+    )
+
+
+def _parse_ledger_page(payload: Any) -> SharedNetLedgerPage:
+    if not isinstance(payload, dict):
+        raise SharedNetProtocolError("SharedNet ledger must be a JSON object")
+    raw_items = payload.get("items")
+    if not isinstance(raw_items, list):
+        raise SharedNetProtocolError("SharedNet ledger items must be a list")
+    next_cursor = payload.get("next_cursor")
+    if next_cursor is not None and (
+        not isinstance(next_cursor, str)
+        or not re.fullmatch(r"txn_[0-9A-Za-z]{10}", next_cursor)
+    ):
+        raise SharedNetProtocolError("SharedNet ledger next_cursor is invalid")
+    return SharedNetLedgerPage(
+        items=tuple(_parse_transfer(item) for item in raw_items),
+        next_cursor=next_cursor,
+        has_more=bool(payload.get("has_more", False)),
+    )
 
 
 def _parse_message(payload: Any) -> SharedNetMessage:
@@ -115,11 +246,11 @@ def _parse_message_page(payload: Any) -> SharedNetMessagePage:
 
 
 class SharedNetRoomClient:
-    """Client for the published ``sharednet.room.v1`` transport protocol.
+    """Client for SharedNet room transport and official credit settlement.
 
-    This deliberately does not implement :class:`ArenaClient`: SharedNet currently
-    provides room messaging, while the organizer has not published product discovery,
-    purchase, credit-settlement, critique, or ranking contracts.
+    Product discovery and service invocation remain room/application protocols. Credit
+    transfer and ledger endpoints are official SharedNet operations and are implemented
+    here without treating a room message or local order as proof of settlement.
 
     The room invite token is used only for ``join``. After joining, all room operations
     use the returned member token. Neither credential is included in object reprs.
@@ -228,12 +359,14 @@ class SharedNetRoomClient:
             history=history,
         )
 
-    async def say(self, content: str) -> SharedNetMessage:
+    async def say(
+        self, content: str, *, idempotency_key: str | None = None
+    ) -> SharedNetMessage:
         if not content.strip():
             raise ValueError("message content cannot be empty")
         response = await self.client.post(
             f"/api/v1/rooms/{self.room_id}/messages",
-            headers=self._member_headers(),
+            headers=self._member_headers(idempotency_key=idempotency_key),
             json={"content": content},
         )
         response.raise_for_status()
@@ -329,16 +462,165 @@ class SharedNetRoomClient:
         # Historical lookup does not consume or advance the wait cursor.
         return _parse_message_page(self._json_object(response))
 
+    async def credit_balance(self) -> SharedNetCreditBalance:
+        response = await self.client.get(
+            "/api/v1/credits", headers=self._member_headers()
+        )
+        response.raise_for_status()
+        payload = self._json_object(response)
+        raw_balance = payload.get("credits", payload)
+        return _parse_credit_balance(raw_balance)
+
+    async def credit_ledger(
+        self, *, last: int = 20, before: str | None = None
+    ) -> SharedNetLedgerPage:
+        if not 1 <= last <= 100:
+            raise ValueError("SharedNet ledger last must be between 1 and 100")
+        if before is not None and not re.fullmatch(r"txn_[0-9A-Za-z]{10}", before):
+            raise ValueError("SharedNet ledger before must be a txn_ identifier")
+        params = {"limit": last}
+        if before is not None:
+            params["before"] = before
+        response = await self.client.get(
+            "/api/v1/credits/transfers",
+            headers=self._member_headers(),
+            params=params,
+        )
+        response.raise_for_status()
+        return _parse_ledger_page(self._json_object(response))
+
+    async def find_transfer(
+        self, transfer_id: str, *, max_pages: int = 10
+    ) -> SharedNetTransfer | None:
+        if not re.fullmatch(r"txn_[0-9A-Za-z]{10}", transfer_id):
+            raise ValueError("transfer_id must be a SharedNet txn_ identifier")
+        if max_pages < 1:
+            raise ValueError("max_pages must be at least 1")
+        before: str | None = None
+        for _ in range(max_pages):
+            page = await self.credit_ledger(last=100, before=before)
+            found = next(
+                (item for item in page.items if item.transfer_id == transfer_id), None
+            )
+            if found is not None:
+                return found
+            if not page.has_more or page.next_cursor is None:
+                return None
+            before = page.next_cursor
+        return None
+
+    async def verify_received_transfer(
+        self,
+        transfer_id: str,
+        *,
+        recipient_principal_id: str,
+        amount: int,
+        room_id: str | None = None,
+        memo_contains: str | None = None,
+    ) -> SharedNetTransfer | None:
+        transfer = await self.find_transfer(transfer_id)
+        if transfer is None:
+            return None
+        mismatches: list[str] = []
+        if transfer.to_principal_id != recipient_principal_id:
+            mismatches.append("recipient")
+        if transfer.amount != amount:
+            mismatches.append("amount")
+        if room_id is not None and transfer.room_id != room_id:
+            mismatches.append("room")
+        if memo_contains is not None and memo_contains not in (transfer.memo or ""):
+            mismatches.append("memo")
+        if mismatches:
+            raise SharedNetProtocolError(
+                "SharedNet transfer does not match expected " + ", ".join(mismatches)
+            )
+        return transfer
+
+    async def pay(
+        self,
+        target: str,
+        amount: int,
+        *,
+        memo: str | None,
+        idempotency_key: str,
+        announce_in_room: bool = True,
+    ) -> SharedNetPaymentResult:
+        if not re.fullmatch(r"(?:p|a|i)_[0-9A-Za-z]{10}", target):
+            raise ValueError("payment target must be a p_, a_, or i_ identifier")
+        if isinstance(amount, bool) or not isinstance(amount, int) or amount < 1:
+            raise ValueError("payment amount must be a positive whole number")
+        if not idempotency_key.strip():
+            raise ValueError("payment idempotency_key cannot be empty")
+
+        payment_key = self._stable_key("credit-transfer", idempotency_key)
+        body: dict[str, Any] = {"to": target, "amount": amount}
+        if memo is not None:
+            body["memo"] = memo
+        if announce_in_room:
+            body["room_id"] = self.room_id
+        response = await self.client.post(
+            "/api/v1/credits/transfers",
+            headers=self._member_headers(idempotency_key=payment_key),
+            json=body,
+        )
+        response.raise_for_status()
+        payload = self._json_object(response)
+        transfer = _parse_transfer(payload.get("transfer", payload))
+        if transfer.addressed_to != target or transfer.amount != amount:
+            raise SharedNetProtocolError(
+                "SharedNet payment response does not match target and amount"
+            )
+        if announce_in_room and transfer.room_id != self.room_id:
+            raise SharedNetProtocolError(
+                "SharedNet payment response is not bound to the current room"
+            )
+
+        receipt: SharedNetMessage | None = None
+        warning: str | None = None
+        if announce_in_room:
+            content = (
+                f"Paid {amount} credit{'s' if amount != 1 else ''} to {target}"
+                f"{f' — {memo}' if memo else ''} ({transfer.transfer_id})"
+            )
+            try:
+                receipt = await self.say(
+                    content,
+                    idempotency_key=self._stable_key(
+                        "credit-room-receipt", idempotency_key
+                    ),
+                )
+            except (httpx.HTTPError, SharedNetProtocolError):
+                warning = (
+                    "Payment settled, but the room receipt was not confirmed; "
+                    "do not repeat the payment"
+                )
+        return SharedNetPaymentResult(
+            transfer=transfer, room_receipt=receipt, warning=warning
+        )
+
     @staticmethod
     def _authorization(token: str) -> dict[str, str]:
         return {"Authorization": f"Bearer {token}"}
 
-    def _member_headers(self) -> dict[str, str]:
+    def _member_headers(
+        self, *, idempotency_key: str | None = None
+    ) -> dict[str, str]:
         if self._member_token is None:
             raise SharedNetNotJoinedError(
                 "join the SharedNet room or restore its member token first"
             )
-        return self._authorization(self._member_token)
+        headers = self._authorization(self._member_token)
+        if idempotency_key is not None:
+            headers["Idempotency-Key"] = idempotency_key
+        return headers
+
+    def _stable_key(self, operation: str, idempotency_key: str) -> str:
+        return str(
+            uuid5(
+                NAMESPACE_URL,
+                f"sharednet:{self.room_id}:{operation}:{idempotency_key}",
+            )
+        )
 
     @staticmethod
     def _json_object(response: httpx.Response) -> dict[str, Any]:

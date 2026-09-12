@@ -15,6 +15,7 @@ from sharedos_commerce_agent.sharednet_adapter import (
 ROOM_ID = "rom_AbC123xYz9"
 INVITE_TOKEN = "rit_invite-secret"
 MEMBER_TOKEN = "sni_member-secret"
+INSTANCE_ID = "i_BuyerSeat1"
 
 
 def json_response(status: int, payload: dict) -> httpx.Response:
@@ -217,5 +218,220 @@ async def test_read_rejects_ambiguous_cursor_combinations() -> None:
             await client.read(after=2, before=4)
         with pytest.raises(ValueError, match="descending"):
             await client.read(after=2)
+    finally:
+        await client.close()
+
+
+async def test_credit_balance_and_ledger_parse_official_payloads() -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        assert request.headers["authorization"] == f"Bearer {MEMBER_TOKEN}"
+        if request.url.path == "/api/v1/credits":
+            return json_response(
+                200,
+                {
+                    "principal_id": "p_SDi8fKiq5X",
+                    "balance": 100,
+                    "granted": 100,
+                    "sent": 0,
+                    "received": 0,
+                },
+            )
+        assert request.url.path == "/api/v1/credits/transfers"
+        assert request.url.params["limit"] == "10"
+        return json_response(
+            200,
+            {
+                "items": [
+                    {
+                        "id": "txn_cqli1YAHvB",
+                        "from_principal_id": None,
+                        "to_principal_id": "p_SDi8fKiq5X",
+                        "amount": 100,
+                        "memo": None,
+                        "room_id": None,
+                        "by_instance_id": None,
+                        "addressed_to": "p_SDi8fKiq5X",
+                        "code": "HACK100",
+                        "created_at": "2026-09-12T16:29:48.794Z",
+                    }
+                ],
+                "next_cursor": None,
+                "has_more": False,
+            },
+        )
+
+    client = SharedNetRoomClient(
+        room_id=ROOM_ID,
+        member_token=MEMBER_TOKEN,
+        transport=httpx.MockTransport(handler),
+    )
+    try:
+        balance = await client.credit_balance()
+        assert balance.principal_id == "p_SDi8fKiq5X"
+        assert balance.balance == 100
+        page = await client.credit_ledger(last=10)
+        assert page.items[0].transfer_id == "txn_cqli1YAHvB"
+        assert page.items[0].code == "HACK100"
+    finally:
+        await client.close()
+
+
+async def test_pay_is_idempotent_and_posts_a_separate_room_receipt() -> None:
+    requests: list[httpx.Request] = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        assert request.headers["authorization"] == f"Bearer {MEMBER_TOKEN}"
+        assert request.headers["idempotency-key"]
+        if request.url.path == "/api/v1/credits/transfers":
+            assert json.loads(request.content) == {
+                "to": "p_Seller1234",
+                "amount": 6,
+                "memo": "risk-report order-17",
+                "room_id": ROOM_ID,
+            }
+            return json_response(
+                200,
+                {
+                    "transfer": {
+                        "id": "txn_Payment123",
+                        "from_principal_id": "p_Buyer12345",
+                        "to_principal_id": "p_Seller1234",
+                        "amount": 6,
+                        "memo": "risk-report order-17",
+                        "room_id": ROOM_ID,
+                        "by_instance_id": INSTANCE_ID,
+                        "addressed_to": "p_Seller1234",
+                        "code": None,
+                        "created_at": "2026-09-13T13:15:00Z",
+                    }
+                },
+            )
+        assert request.url.path == f"/api/v1/rooms/{ROOM_ID}/messages"
+        content = json.loads(request.content)["content"]
+        assert content == (
+            "Paid 6 credits to p_Seller1234 — risk-report order-17 "
+            "(txn_Payment123)"
+        )
+        return json_response(
+            201,
+            {
+                "message": {
+                    "id": "msg_Receipt123",
+                    "sequence": 18,
+                    "content": content,
+                }
+            },
+        )
+
+    client = SharedNetRoomClient(
+        room_id=ROOM_ID,
+        member_token=MEMBER_TOKEN,
+        transport=httpx.MockTransport(handler),
+    )
+    try:
+        result = await client.pay(
+            "p_Seller1234",
+            6,
+            memo="risk-report order-17",
+            idempotency_key="market:order-17",
+        )
+        assert result.transfer.transfer_id == "txn_Payment123"
+        assert result.room_receipt is not None
+        assert result.warning is None
+        assert requests[0].headers["idempotency-key"] != requests[1].headers[
+            "idempotency-key"
+        ]
+    finally:
+        await client.close()
+
+
+async def test_pay_reports_receipt_failure_without_reporting_payment_failure() -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/api/v1/credits/transfers":
+            return json_response(
+                200,
+                {
+                    "transfer": {
+                        "id": "txn_Payment123",
+                        "from_principal_id": "p_Buyer12345",
+                        "to_principal_id": "p_Seller1234",
+                        "amount": 6,
+                        "memo": None,
+                        "room_id": ROOM_ID,
+                        "by_instance_id": INSTANCE_ID,
+                        "addressed_to": "p_Seller1234",
+                        "code": None,
+                        "created_at": "2026-09-13T13:15:00Z",
+                    }
+                },
+            )
+        return json_response(503, {"error": {"code": "unavailable"}})
+
+    client = SharedNetRoomClient(
+        room_id=ROOM_ID,
+        member_token=MEMBER_TOKEN,
+        transport=httpx.MockTransport(handler),
+    )
+    try:
+        result = await client.pay(
+            "p_Seller1234",
+            6,
+            memo=None,
+            idempotency_key="market:order-17",
+        )
+        assert result.transfer.transfer_id == "txn_Payment123"
+        assert result.room_receipt is None
+        assert "do not repeat" in (result.warning or "")
+    finally:
+        await client.close()
+
+
+async def test_verify_received_transfer_checks_official_ledger_fields() -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/api/v1/credits/transfers"
+        return json_response(
+            200,
+            {
+                "items": [
+                    {
+                        "id": "txn_Payment123",
+                        "from_principal_id": "p_Buyer12345",
+                        "to_principal_id": "p_Seller1234",
+                        "amount": 6,
+                        "memo": "risk-report order-17",
+                        "room_id": ROOM_ID,
+                        "by_instance_id": INSTANCE_ID,
+                        "addressed_to": "p_Seller1234",
+                        "code": None,
+                        "created_at": "2026-09-13T13:15:00Z",
+                    }
+                ],
+                "next_cursor": None,
+                "has_more": False,
+            },
+        )
+
+    client = SharedNetRoomClient(
+        room_id=ROOM_ID,
+        member_token=MEMBER_TOKEN,
+        transport=httpx.MockTransport(handler),
+    )
+    try:
+        transfer = await client.verify_received_transfer(
+            "txn_Payment123",
+            recipient_principal_id="p_Seller1234",
+            amount=6,
+            room_id=ROOM_ID,
+            memo_contains="order-17",
+        )
+        assert transfer is not None
+        with pytest.raises(SharedNetProtocolError, match="amount"):
+            await client.verify_received_transfer(
+                "txn_Payment123",
+                recipient_principal_id="p_Seller1234",
+                amount=5,
+                room_id=ROOM_ID,
+            )
     finally:
         await client.close()

@@ -8,7 +8,8 @@ principal ID 和 Agent address 不得使用 QA 值、示例值或猜测值替代
 - `commerce-api`：Seller FastAPI。
 - `run_dashboard.py`：Seller API 与同源 Dashboard。
 - `sharednet-agent listen`：正式房间自动加入/身份恢复、持久收件箱和产品应答。
-- `sharednet-agent arena`：仅在主办方发布完整业务 REST 路由后运行 LangGraph。
+- `SharedNetRoomClient`：正式 room 通信，以及官方 balance/pay/ledger 与到账核验。
+- `sharednet-agent arena`：仅在主办方另行发布完整业务 REST 路由时使用；当前正式形式以 Room 消息和各产品公开接口为准。
 - `seller-harness`：本地并发与 soak 验证，不连接正式 credits。
 
 房间监听与 Web API 是两个进程。只启动 Dashboard 不会启动 SharedNet Agent；只启动
@@ -67,8 +68,9 @@ export SHAREDNET_MEMBER_TOKEN='<sni_...>'
 3. 自然语言明确包含产品名、Agent 名或一个服务 ID。
 
 回复使用 `a2a-interaction-intelligence.room.v1` JSON，并包含公开 URL、服务、价格、
-`reply_to` 和 `credit_settlement=not_evaluated`。监听器不会在公开房间发布任何凭据，
-也不会把房间消息自行解释成官方付款回执。
+`reply_to` 和 `credit_settlement=not_evaluated`。监听器不会在公开房间发布任何凭据。
+房间内的 `Paid ... (txn_...)` 文字只负责公开交易上下文；必须再用官方 ledger 核对
+transfer ID、收款 principal、金额、room 和 memo 才能认定到账。
 
 未点名本产品的普通聊天会被确认消费但不回复，避免在共享房间刷屏。本 Agent 自己发送的
 消息也不会触发循环应答。
@@ -84,10 +86,15 @@ export SHAREDNET_MEMBER_TOKEN='<sni_...>'
 保证不会产生第二个 seat。程序使用进程锁阻止同一身份文件启动两个监听器；首次 join 时仍
 不要让不同身份路径的两个实例同时使用同一邀请。
 
-## LangGraph 正式运行
+## 官方 credits 与 LangGraph 边界
 
-当前 SharedNet room API 只提供房间消息，不提供 discover/invoke/critique/ranking/buy 的
-正式业务路由。如果主办方发布这些 REST 合同，配置：
+SharedNet 已正式提供 balance、redeem、pay 和 ledger。付款请求与 `--room` 回执是两次独立
+操作：即使回执发布失败，付款仍然最终有效，必须先查 ledger，禁止自动重付。仓库适配层为
+付款和回执分别派生稳定幂等键，并支持按 transfer ID 核对收款 principal、金额、room 和 memo。
+
+产品发现来自 Room roster，产品调用来自各队公布的 MCP、CLI 或 HTTPS 接口；当前没有全局
+产品 registry，也没有统一 discover/invoke/critique/ranking REST 合同。因此正式运行不应等待
+一个并不存在的 buy route。只有主办方以后另行发布完整业务 REST 合同时，才配置：
 
 ```bash
 export ARENA_BASE_URL='<官方 API origin>'
@@ -108,8 +115,9 @@ uv run sharednet-agent arena --mode critique --run-id official-critique-round
 uv run sharednet-agent arena --mode market --run-id official-market-round
 ```
 
-该入口使用 SQLite LangGraph checkpoint 和 outbound operation journal。缺少任何必需路由时
-会拒绝启动，不会猜测交易或 credits 语义。
+该兼容入口使用 SQLite LangGraph checkpoint 和 outbound operation journal。缺少任何必需
+路由时会拒绝启动。当前 live path 则使用生产 Room listener、对手公开接口和官方 credits
+适配层；分析报告仍固定 `credit_settlement=not_evaluated`，不把付款变成证据质量。
 
 ## 比赛前验收
 
