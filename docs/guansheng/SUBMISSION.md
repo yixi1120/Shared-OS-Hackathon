@@ -27,3 +27,6 @@ Public inputs remain self-reported. A single task report is not global reputatio
 雅婷确认信息后，仅更新 submission.json 并执行 check_submission.py；通过字段检查后再把该文件中的真实值加入最终发送内容。使用 submission.json 中用户确认的 Discord submission 频道，再发送完整介绍及材料。保留真实消息链接与提交时间到 submission.json。字段齐全与实际发送是两个独立条件，不能把本地校验通过写成已提交。
 
 比赛主页 https://www.sharedos.ai/weekly-hackathon 在2026年9月12日检查时同时出现 MentorMates 与 Devpost 提交入口；用户要求 Discord 指定 submission 环节。以主办方明确通知核对入口，当前不臆定频道或已完成提交。
+
+
+验证基线：95 项代码测试通过；39 项 HTTP 合同检查与 9 项浏览器检查通过（本地真实 API，非线上结算验证）。
