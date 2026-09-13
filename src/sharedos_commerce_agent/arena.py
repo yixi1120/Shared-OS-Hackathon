@@ -5,27 +5,31 @@ from contextlib import asynccontextmanager
 from typing import Protocol
 from uuid import uuid4
 
+import aiosqlite
 from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
 from .config import Settings
+from .model_client import OpenAICompatibleModel
 from .models import (
     ArenaProgress,
     ArenaReport,
     ArenaRunMode,
+    Critique,
+    PurchaseIntent,
     RankingEntry,
     ServiceListing,
     ServiceResult,
-    TradeReconciliation,
     TradeReceipt,
+    TradeReconciliation,
 )
-from .model_client import OpenAICompatibleModel
-from .reasoning import StructuredReasoningModel
 from .operation_journal import (
     InMemoryOperationJournal,
     OperationJournal,
     SqliteOperationJournal,
 )
+from .reasoning import StructuredReasoningModel
 from .sales import SalesPolicy, SalesReply
 from .strategy import CritiqueStrategy, MarketStrategy
 
@@ -52,6 +56,18 @@ class ArenaClient(Protocol):
     async def reconcile_trade(
         self, listing: ServiceListing, *, idempotency_key: str
     ) -> TradeReconciliation: ...
+
+
+CHECKPOINT_ALLOWED_TYPES = (
+    ArenaProgress,
+    Critique,
+    PurchaseIntent,
+    RankingEntry,
+    ServiceListing,
+    ServiceResult,
+    TradeReconciliation,
+    TradeReceipt,
+)
 
 
 class ArenaRunner:
@@ -155,9 +171,11 @@ async def persistent_arena_runner(
     active_reasoning_model = reasoning_model
     if active_reasoning_model is None and active_settings.model_api_key:
         active_reasoning_model = OpenAICompatibleModel(active_settings)
-    async with AsyncSqliteSaver.from_conn_string(
-        active_settings.checkpoint_path
-    ) as checkpointer:
+    serializer = JsonPlusSerializer(
+        allowed_msgpack_modules=CHECKPOINT_ALLOWED_TYPES,
+    )
+    async with aiosqlite.connect(active_settings.checkpoint_path) as connection:
+        checkpointer = AsyncSqliteSaver(connection, serde=serializer)
         yield ArenaRunner(
             client,
             critique_strategy=critique_strategy,
