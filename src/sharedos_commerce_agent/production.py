@@ -127,7 +127,11 @@ class RuntimeIdentityStore:
 
 
 def load_cli_room_identity(
-    path: str, *, room_id: str, sharednet_base_url: str
+    path: str,
+    *,
+    room_id: str,
+    sharednet_base_url: str,
+    member_id: str | None = None,
 ) -> RuntimeIdentity:
     """Import an account-bound seat created by the official SharedNet CLI.
 
@@ -160,7 +164,7 @@ def load_cli_room_identity(
         raise RuntimeConfigurationError(
             "SharedNet CLI credential is not valid JSON"
         ) from exc
-    if not isinstance(payload, dict) or payload.get("schema_version") != 1:
+    if not isinstance(payload, dict) or payload.get("schema_version") not in {1, 3}:
         raise RuntimeConfigurationError(
             "SharedNet CLI credential has an unsupported schema"
         )
@@ -168,11 +172,36 @@ def load_cli_room_identity(
         raise RuntimeConfigurationError(
             "SharedNet CLI credential belongs to a different origin"
         )
-    identity = RuntimeIdentity(
-        room_id=str(payload.get("room_id", "")),
-        member_id=str(payload.get("member_id", "")),
-        member_token=str(payload.get("member_token", "")),
-    )
+    if payload.get("schema_version") == 1:
+        identity = RuntimeIdentity(
+            room_id=str(payload.get("room_id", "")),
+            member_id=str(payload.get("member_id", "")),
+            member_token=str(payload.get("member_token", "")),
+        )
+    else:
+        seats = payload.get("seats")
+        if not isinstance(seats, dict) or not seats:
+            raise RuntimeConfigurationError(
+                "SharedNet CLI credential has no saved seats"
+            )
+        selected_member_id = member_id
+        if selected_member_id is None:
+            if len(seats) != 1:
+                raise RuntimeConfigurationError(
+                    "SharedNet CLI credential contains multiple seats; "
+                    "configure SHAREDNET_MEMBER_ID"
+                )
+            selected_member_id = next(iter(seats))
+        seat = seats.get(selected_member_id)
+        if not isinstance(seat, dict):
+            raise RuntimeConfigurationError(
+                "Configured SharedNet member ID is not present in the CLI credential"
+            )
+        identity = RuntimeIdentity(
+            room_id=str(payload.get("room_id", "")),
+            member_id=selected_member_id,
+            member_token=str(seat.get("member_key", "")),
+        )
     if identity.room_id != room_id:
         raise RuntimeConfigurationError(
             "SharedNet CLI credential belongs to a different room"
@@ -524,6 +553,7 @@ async def bootstrap_room_runtime(
                 settings.sharednet_cli_credential_path,
                 room_id=room_id,
                 sharednet_base_url=settings.sharednet_base_url,
+                member_id=settings.sharednet_member_id,
             )
             if saved is None and settings.sharednet_cli_credential_path is not None
             else None
@@ -782,6 +812,7 @@ async def production_diagnostics(
                     settings.sharednet_cli_credential_path,
                     room_id=settings.sharednet_room_id,
                     sharednet_base_url=settings.sharednet_base_url,
+                    member_id=settings.sharednet_member_id,
                 )
                 member_token = identity.member_token
                 member_id = identity.member_id

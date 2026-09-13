@@ -174,6 +174,49 @@ def test_cli_room_identity_import_requires_owner_only_account_bound_file(
         )
 
 
+def test_cli_room_identity_imports_v3_multi_seat_file(tmp_path) -> None:
+    second_member_id = "i_SecondSeat123"
+    second_member_token = "sni_second-member-token"
+    path = tmp_path / "room.json"
+    path.write_text(
+        json.dumps(
+            {
+                "schema_version": 3,
+                "base_url": "https://www.sharednet.ai",
+                "room_id": ROOM_ID,
+                "seats": {
+                    MEMBER_ID: {
+                        "member_key": MEMBER_TOKEN,
+                        "last_sequence": 0,
+                    },
+                    second_member_id: {
+                        "member_key": second_member_token,
+                        "last_sequence": 0,
+                    },
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    path.chmod(0o600)
+
+    identity = load_cli_room_identity(
+        str(path),
+        room_id=ROOM_ID,
+        sharednet_base_url="https://www.sharednet.ai",
+        member_id=second_member_id,
+    )
+    assert identity.member_id == second_member_id
+    assert identity.member_token == second_member_token
+
+    with pytest.raises(RuntimeConfigurationError, match="multiple seats"):
+        load_cli_room_identity(
+            str(path),
+            room_id=ROOM_ID,
+            sharednet_base_url="https://www.sharednet.ai",
+        )
+
+
 async def test_bootstrap_refuses_anonymous_invite_join_by_default(tmp_path) -> None:
     settings = _settings(tmp_path, sharednet_allow_anonymous_join=False)
 
