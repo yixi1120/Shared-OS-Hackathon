@@ -17,7 +17,13 @@ set +a
 
 export BUILD_SHA="${BUILD_SHA:-$(git rev-parse --short=12 HEAD)}"
 
-uv run sharednet-agent doctor --test-generation
+if command -v uv >/dev/null 2>&1; then
+  runner=(uv run)
+else
+  runner=()
+fi
+
+"${runner[@]}" sharednet-agent doctor --test-generation
 
 terminate() {
   kill "${api_pid:-}" "${listener_pid:-}" 2>/dev/null || true
@@ -27,7 +33,7 @@ trap terminate EXIT INT TERM
 
 restart_api() {
   while true; do
-    uv run commerce-api
+    "${runner[@]}" commerce-api
     echo "Seller API exited; restarting in 2 seconds" >&2
     sleep 2
   done
@@ -35,7 +41,7 @@ restart_api() {
 
 restart_listener() {
   while true; do
-    uv run sharednet-agent listen --announce
+    "${runner[@]}" sharednet-agent listen --announce
     echo "SharedNet listener exited; restarting in 2 seconds" >&2
     sleep 2
   done
@@ -43,6 +49,16 @@ restart_listener() {
 
 restart_api &
 api_pid=$!
-restart_listener &
-listener_pid=$!
-wait "$api_pid" "$listener_pid"
+
+if [[ -n "${SHAREDNET_ROOM_ID:-}" ]] && {
+  [[ -n "${SHAREDNET_MEMBER_TOKEN:-}" ]] ||
+  [[ -n "${SHAREDNET_CLI_CREDENTIAL_PATH:-}" ]] ||
+  [[ -n "${SHAREDNET_INVITE_TOKEN:-}" ]];
+}; then
+  restart_listener &
+  listener_pid=$!
+  wait "$api_pid" "$listener_pid"
+else
+  echo "SharedNet listener disabled: room credential is not configured" >&2
+  wait "$api_pid"
+fi

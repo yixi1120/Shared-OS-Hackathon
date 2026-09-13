@@ -680,21 +680,27 @@ async def production_diagnostics(
                 headers={"Authorization": f"Bearer {settings.model_api_key}"},
                 timeout=settings.model_request_timeout_seconds,
             ) as client:
-                models_response, key_response = await asyncio.gather(
-                    client.get("/models"), client.get("/key")
-                )
+                models_response = await client.get("/models")
                 models_response.raise_for_status()
-                key_response.raise_for_status()
                 payload = models_response.json()
                 identifiers = {
                     item.get("id")
                     for item in payload.get("data", [])
                     if isinstance(item, dict)
                 }
+                provider_host = (
+                    urlparse(settings.model_base_url).hostname or ""
+                ).lower()
+                key_check = "models_endpoint"
+                if provider_host in {"openrouter.ai", "www.openrouter.ai"}:
+                    key_response = await client.get("/key")
+                    key_response.raise_for_status()
+                    key_check = "provider_key_endpoint"
                 model_report.update(
                     {
                         "gateway_reachable": True,
                         "key_accepted": True,
+                        "key_check": key_check,
                         "primary_available": settings.model_name in identifiers,
                         "fallback_available": (
                             settings.model_fallback_name in identifiers
@@ -724,7 +730,10 @@ async def production_diagnostics(
                 model_report["generation_valid"] = generated == {"status": "ok"}
             except Exception as exc:
                 model_report.update(
-                    {"generation_valid": False, "generation_error": str(exc)}
+                    {
+                        "generation_valid": False,
+                        "generation_error_type": type(exc).__name__,
+                    }
                 )
 
     service_report = report["service"]
@@ -800,7 +809,9 @@ async def production_diagnostics(
 
     report["ready"] = {
         "model": bool(
-            model_report.get("key_accepted") and model_report.get("primary_available")
+            model_report.get("key_accepted")
+            and model_report.get("primary_available")
+            and (not test_generation or model_report.get("generation_valid"))
         ),
         "seller": bool(
             service_report.get("reachable")
