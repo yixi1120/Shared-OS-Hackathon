@@ -42,6 +42,9 @@ class InteractionServiceClient:
     def health(self) -> dict[str, Any]:
         return self._json(self.client.get("/health"))
 
+    def register(self, name: str) -> dict[str, Any]:
+        return self._json(self.client.post("/v1/agents/register", json={"name": name}))
+
     def catalog(self) -> list[dict[str, Any]]:
         payload = self._json(self.client.get("/v1/catalog"))
         if not isinstance(payload, list):
@@ -122,6 +125,8 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("health", help="Check service availability (free).")
     subparsers.add_parser("catalog", help="Read services and prices (free).")
     subparsers.add_parser("contract", help="Read input/output schemas (free).")
+    register = subparsers.add_parser("register", help="Create a local Seller identity; stdout contains a secret token to save securely.")
+    register.add_argument("--name", required=True)
     subparsers.add_parser(
         "whoami", help="Resolve the authenticated Seller API principal."
     )
@@ -134,7 +139,7 @@ def build_parser() -> argparse.ArgumentParser:
         required=True,
         choices=("a2a-interaction-trace", "a2a-interaction-risk-report"),
     )
-    analyze.add_argument("--buyer-id", required=True)
+    analyze.add_argument("--buyer-id", help="Defaults to the authenticated principal.")
     analyze.add_argument("--budget", type=int, default=6, choices=range(5, 101))
     analyze.add_argument("--input", required=True, type=Path)
     analyze.add_argument(
@@ -159,11 +164,13 @@ def main(argv: Sequence[str] | None = None) -> int:
                 result = client.contract()
             elif args.command == "whoami":
                 result = client.whoami()
+            elif args.command == "register":
+                result = client.register(args.name)
             else:
                 payload = json.loads(args.input.read_text(encoding="utf-8"))
                 result = client.analyze(
                     service_id=args.service_id,
-                    buyer_id=args.buyer_id,
+                    buyer_id=args.buyer_id or client.whoami()["principal_id"],
                     budget=args.budget,
                     input_payload=payload,
                     idempotency_key=args.idempotency_key or f"cli-{uuid4()}",

@@ -5,12 +5,15 @@ from threading import RLock
 from typing import Annotated, Any
 
 import uvicorn
-from fastapi import Depends, FastAPI, Header, HTTPException
-from pydantic import BaseModel, Field
+from fastapi import Depends, FastAPI, Header, HTTPException, Response
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 
 from .auth import AuthenticatedPrincipal, InvalidCredentialError, SellerAuthenticator
 from .config import Settings
 from .ledger import Ledger
+from .identity import IdentityStore
+import hashlib
+import json
 from .models import (
     InteractionTraceInput,
     NegotiationDecision,
@@ -26,6 +29,18 @@ class NegotiationRequest(BaseModel):
     buyer_offer: int = Field(ge=1, le=100)
 
 
+class RegistrationRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    name: str = Field(min_length=1, max_length=100)
+
+    @field_validator("name")
+    @classmethod
+    def clean_name(cls, value):
+        if not value.strip() or any(ord(char) < 32 for char in value):
+            raise ValueError("Use a nonempty display name without control characters")
+        return value.strip()
+
+
 class OrderRequest(BaseModel):
     quote_id: str
     buyer_id: str
@@ -38,6 +53,7 @@ class OrderRequest(BaseModel):
 def create_app(settings: Settings | None = None) -> FastAPI:
     active_settings = settings or Settings.from_env()
     seller = SellerService(Ledger(active_settings.ledger_path))
+    identities = IdentityStore(seller.ledger)
     quotes: dict[str, Quote] = {}
     agreed_prices: dict[str, int] = {}
     low_offers: dict[str, int] = {}
@@ -46,6 +62,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     authenticator = SellerAuthenticator(
         operator_token=active_settings.seller_api_token,
         principal_tokens_json=active_settings.seller_agent_tokens_json,
+        identity_store=identities,
     )
 
     def require_seller_auth(
@@ -57,7 +74,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         token or replace the dependency with the organizer's advertised A2A scheme.
         """
         try:
-            return authenticator.authenticate(authorization)
+            principal = authenticator.authenticate(authorization)
+            if principal.mode == "registered-agent-token":
+                identities.limit("agent:" + principal.principal_id, 120, 60)
+            return principal
         except InvalidCredentialError as exc:
             raise HTTPException(
                 status_code=401,
@@ -83,6 +103,23 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.get("/health")
     def health() -> dict[str, str]:
         return {"status": "ok"}
+
+    @app.post("/v1/agents/register", status_code=201)
+    def register(request: RegistrationRequest, response: Response):
+        response.headers["Cache-Control"] = "no-store"
+        response.headers["Pragma"] = "no-cache"
+        return identities.register(request.name)
+
+    @app.delete("/v1/agents/me/key", status_code=204)
+    def revoke_key(principal: AuthenticatedPrincipal = Depends(require_seller_auth)):
+        if principal.mode != "registered-agent-token":
+            raise HTTPException(403, "Requires a self-registered agent token")
+        identities.revoke(principal.principal_id)
+        return Response(status_code=204, headers={"Cache-Control": "no-store"})
+
+    @app.get("/.well-known/agent.json")
+    def agent_manifest():
+        return {"name": "A2A Interaction Intelligence Seller", "authentication": {"type": "bearer", "registration": "/v1/agents/register", "registration_method": "POST", "registration_body": {"name": "your-agent-name"}, "token_field": "api_key", "buyer_id_field": "buyer_id", "identity_scope": "local Seller identity, not a verified SharedNet principal"}, "openapi": "/openapi.json", "catalog": "/v1/catalog", "contract": "/v1/contracts/interaction-v1", "workflow": ["register", "quote", "order", "deliver"], "registration_limit_per_hour": 100, "agent_requests_per_minute": 120, "credit_settlement": "not_evaluated"}
 
     @app.get("/v1/catalog")
     def catalog() -> list[dict[str, Any]]:
@@ -191,7 +228,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 buyer_id=request.buyer_id,
                 service_id=request.service_id,
                 amount=request.amount,
-                idempotency_key=request.idempotency_key,
+                idempotency_key=("agent-" + hashlib.sha256(json.dumps([principal.principal_id, request.idempotency_key]).encode()).hexdigest() if principal.mode == "registered-agent-token" else request.idempotency_key),
                 input_payload=request.input.model_dump(mode="json"),
             )
         except ValueError as exc:

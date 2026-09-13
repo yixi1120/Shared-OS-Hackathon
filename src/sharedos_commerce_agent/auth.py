@@ -34,24 +34,30 @@ class SellerAuthenticator:
         *,
         operator_token: str | None,
         principal_tokens_json: str | None,
+        identity_store=None,
     ) -> None:
         self._operator_token = operator_token
+        self._identity_store = identity_store
         self._principal_by_digest = self._parse_principal_tokens(
             principal_tokens_json
         )
 
     @property
     def enabled(self) -> bool:
-        return self._operator_token is not None or bool(self._principal_by_digest)
+        return self._operator_token is not None or bool(self._principal_by_digest) or (self._identity_store is not None and self._identity_store.has_agents())
 
     def authenticate(self, authorization: str | None) -> AuthenticatedPrincipal:
-        if not self.enabled:
+        if not self.enabled and authorization is None:
             return AuthenticatedPrincipal(principal_id=None, mode="disabled-dev")
         scheme, separator, credential = (authorization or "").partition(" ")
         if not separator or scheme.lower() != "bearer" or not credential:
             raise InvalidCredentialError("missing_or_invalid_bearer")
 
         digest = self._digest(credential)
+        if self._identity_store is not None:
+            registered = self._identity_store.authenticate(credential)
+            if registered is not None:
+                return AuthenticatedPrincipal(principal_id=registered, mode="registered-agent-token")
         principal_id = self._principal_by_digest.get(digest)
         if principal_id is not None:
             return AuthenticatedPrincipal(
