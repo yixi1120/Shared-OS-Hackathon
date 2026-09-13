@@ -596,6 +596,18 @@ async def bootstrap_room_runtime(
             runtime_kind=settings.sharednet_runtime_kind,
             base_url=settings.sharednet_base_url,
             transport=transport,
+            message_cli_member_id=(
+                member_id
+                if settings.sharednet_cli_credential_path is not None
+                and transport is None
+                else None
+            ),
+            message_cli_executable=(
+                "sharednet"
+                if settings.sharednet_cli_credential_path is not None
+                and transport is None
+                else None
+            ),
         )
         if member_token is None:
             result = await client.join()

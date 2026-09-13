@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import asyncio
 from dataclasses import asdict, dataclass, field
+import json
 import re
 from typing import Any, Literal
 from uuid import NAMESPACE_URL, uuid5
@@ -268,6 +270,8 @@ class SharedNetRoomClient:
         base_url: str = "https://www.sharednet.ai",
         timeout_seconds: float = 30,
         transport: httpx.AsyncBaseTransport | None = None,
+        message_cli_member_id: str | None = None,
+        message_cli_executable: str | None = None,
     ) -> None:
         if not room_id.startswith("rom_"):
             raise ValueError("room_id must be a SharedNet rom_ identifier")
@@ -281,6 +285,10 @@ class SharedNetRoomClient:
             raise ValueError("agent_name cannot be empty")
         if not runtime_kind.strip() or runtime_kind.lower() != runtime_kind:
             raise ValueError("runtime_kind must be a non-empty lower-case handle")
+        if (message_cli_member_id is None) != (message_cli_executable is None):
+            raise ValueError(
+                "message_cli_member_id and message_cli_executable must be configured together"
+            )
 
         self.room_id = room_id
         self._invite_token = invite_token
@@ -288,6 +296,8 @@ class SharedNetRoomClient:
         self._last_sequence = last_sequence
         self.agent_name = agent_name
         self.runtime_kind = runtime_kind
+        self._message_cli_member_id = message_cli_member_id
+        self._message_cli_executable = message_cli_executable
         self.client = httpx.AsyncClient(
             base_url=base_url,
             timeout=timeout_seconds,
@@ -364,6 +374,42 @@ class SharedNetRoomClient:
     ) -> SharedNetMessage:
         if not content.strip():
             raise ValueError("message content cannot be empty")
+        # Current Arena rooms are account-bound through the official CLI.  When that
+        # identity is available, use the organizer-maintained publisher so protocol
+        # changes in the POST route cannot strand an otherwise healthy listener.
+        # Reads and payment verification remain direct, inspectable API calls.
+        if (
+            self._message_cli_member_id is not None
+            and self._message_cli_executable is not None
+            and idempotency_key is None
+        ):
+            process = await asyncio.create_subprocess_exec(
+                self._message_cli_executable,
+                "say",
+                content,
+                "--as",
+                self._message_cli_member_id,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            stdout, stderr = await process.communicate()
+            if process.returncode != 0:
+                detail = stderr.decode("utf-8", errors="replace").strip()
+                raise SharedNetProtocolError(
+                    "official SharedNet CLI could not publish the room reply"
+                    + (f": {detail[:300]}" if detail else "")
+                )
+            try:
+                payload = json.loads(stdout.decode("utf-8"))
+            except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+                raise SharedNetProtocolError(
+                    "official SharedNet CLI returned an invalid message response"
+                ) from exc
+            if not isinstance(payload, dict):
+                raise SharedNetProtocolError(
+                    "official SharedNet CLI returned a non-object message response"
+                )
+            return _parse_message(payload.get("message", payload))
         response = await self.client.post(
             f"/api/v1/rooms/{self.room_id}/messages",
             headers=self._member_headers(idempotency_key=idempotency_key),
