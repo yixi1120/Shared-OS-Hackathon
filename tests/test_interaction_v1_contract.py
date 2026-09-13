@@ -7,9 +7,8 @@ from fastapi.testclient import TestClient
 
 from sharedos_commerce_agent.api import create_app
 from sharedos_commerce_agent.config import Settings
-from sharedos_commerce_agent.models import InteractionEvent, QuoteRequest
+from sharedos_commerce_agent.models import InteractionEvent
 from sharedos_commerce_agent.risk_rules import RISK_MEANINGS
-from sharedos_commerce_agent.strategy import PricingPolicy
 from sharedos_commerce_agent.telemetry import evaluate_interaction_trace
 
 CASES = json.loads((Path(__file__).parent / 'fixtures/interaction_v1.json').read_text())

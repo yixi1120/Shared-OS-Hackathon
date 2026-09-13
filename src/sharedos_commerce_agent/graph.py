@@ -198,10 +198,10 @@ def build_arena_graph(
             )
             try:
                 await retry_idempotent(
-                    lambda: client.post_critique(
-                        " ".join([item.evidence, item.disagreement, item.suggestion]),
-                        listing.seller_id,
-                        idempotency_key=idempotency_key,
+                    lambda item=item, seller_id=listing.seller_id, key=idempotency_key: client.post_critique(
+                        f"{item.evidence} {item.disagreement} {item.suggestion}",
+                        seller_id,
+                        idempotency_key=key,
                     )
                 )
             except Exception as exc:

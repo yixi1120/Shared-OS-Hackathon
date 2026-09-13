@@ -478,7 +478,7 @@ class SharedNetRoomClient:
             raise ValueError("SharedNet ledger last must be between 1 and 100")
         if before is not None and not re.fullmatch(r"txn_[0-9A-Za-z]{10}", before):
             raise ValueError("SharedNet ledger before must be a txn_ identifier")
-        params = {"limit": last}
+        params: dict[str, int | str] = {"limit": last}
         if before is not None:
             params["before"] = before
         response = await self.client.get(

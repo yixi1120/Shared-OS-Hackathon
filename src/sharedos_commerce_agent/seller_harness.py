@@ -267,6 +267,7 @@ async def run_seller_harness(
                 and perf_counter() >= next_progress_at
                 and on_progress is not None
             ):
+                assert progress_every_seconds is not None
                 on_progress(snapshot(final=False))
                 next_progress_at = perf_counter() + progress_every_seconds
             if round_pause_seconds:
