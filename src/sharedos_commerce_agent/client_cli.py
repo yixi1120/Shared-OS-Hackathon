@@ -54,6 +54,16 @@ class InteractionServiceClient:
     def whoami(self) -> dict[str, Any]:
         return self._json(self.client.get("/v1/auth/whoami"))
 
+    def register(self, name: str) -> dict[str, Any]:
+        identity = self._json(
+            self.client.post("/v1/agents/register", json={"name": name})
+        )
+        api_key = identity.get("api_key")
+        if not isinstance(api_key, str) or not api_key:
+            raise ValueError("registration response is missing api_key")
+        self.client.headers["Authorization"] = f"Bearer {api_key}"
+        return identity
+
     def analyze(
         self,
         *,
@@ -125,6 +135,10 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser(
         "whoami", help="Resolve the authenticated Seller API principal."
     )
+    register = subparsers.add_parser(
+        "register", help="Create a revocable Seller-local Agent identity."
+    )
+    register.add_argument("--name", required=True)
 
     analyze = subparsers.add_parser(
         "analyze", help="Request and deliver one paid Trace or Risk report."
@@ -159,6 +173,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                 result = client.contract()
             elif args.command == "whoami":
                 result = client.whoami()
+            elif args.command == "register":
+                result = client.register(args.name)
             else:
                 payload = json.loads(args.input.read_text(encoding="utf-8"))
                 result = client.analyze(

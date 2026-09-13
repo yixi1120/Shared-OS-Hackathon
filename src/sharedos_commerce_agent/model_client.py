@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from asyncio import get_running_loop
 from typing import Any
 
 import httpx
@@ -16,10 +17,16 @@ class ModelError(RuntimeError):
 class OpenAICompatibleModel:
     """Small client for OpenRouter or any OpenAI-compatible chat endpoint."""
 
-    def __init__(self, settings: Settings) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        *,
+        transport: httpx.AsyncBaseTransport | None = None,
+    ) -> None:
         if not settings.model_api_key:
             raise ModelError("MODEL_API_KEY is required for live model calls")
         self.settings = settings
+        self.transport = transport
 
     async def complete_json(
         self,
@@ -33,15 +40,24 @@ class OpenAICompatibleModel:
         async with httpx.AsyncClient(
             base_url=self.settings.model_base_url,
             headers=headers,
-            timeout=self.settings.model_request_timeout_seconds,
+            transport=self.transport,
         ) as client:
             requested_model = model or self.settings.model_name
             candidates = [requested_model]
             if model is None and self.settings.model_fallback_name != requested_model:
                 candidates.append(self.settings.model_fallback_name)
 
+            deadline = (
+                get_running_loop().time() + self.settings.model_request_timeout_seconds
+            )
+            failures: list[str] = []
             last_error: Exception | None = None
-            for candidate in candidates:
+            for index, candidate in enumerate(candidates):
+                remaining = deadline - get_running_loop().time()
+                if remaining <= 0:
+                    failures.append(f"{candidate}:TotalTimeout")
+                    break
+                attempt_timeout = max(0.5, remaining / max(1, len(candidates) - index))
                 body = {
                     "model": candidate,
                     "messages": [
@@ -59,7 +75,11 @@ class OpenAICompatibleModel:
                     "response_format": {"type": "json_object"},
                 }
                 try:
-                    response = await client.post("/chat/completions", json=body)
+                    response = await client.post(
+                        "/chat/completions",
+                        json=body,
+                        timeout=attempt_timeout,
+                    )
                     response.raise_for_status()
                     content = response.json()["choices"][0]["message"]["content"]
                     parsed = json.loads(content)
@@ -74,6 +94,12 @@ class OpenAICompatibleModel:
                     ValidationError,
                 ) as exc:
                     last_error = exc
+                    suffix = (
+                        f":{exc.response.status_code}"
+                        if isinstance(exc, httpx.HTTPStatusError)
+                        else ""
+                    )
+                    failures.append(f"{candidate}:{type(exc).__name__}{suffix}")
 
-            error_name = type(last_error).__name__ if last_error else "UnknownError"
-            raise ModelError(f"All model candidates failed validation: {error_name}") from last_error
+            summary = ", ".join(failures) or "UnknownError"
+            raise ModelError(f"All model candidates failed: {summary}") from last_error

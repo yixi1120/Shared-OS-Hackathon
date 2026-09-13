@@ -5,7 +5,9 @@ from sharedos_commerce_agent.config import Settings
 
 
 def test_quote_negotiate_order_and_delivery() -> None:
-    client = TestClient(create_app(Settings(ledger_path=":memory:")))
+    client = TestClient(
+        create_app(Settings(ledger_path=":memory:", seller_allow_insecure_dev=True))
+    )
     quote_response = client.post(
         "/v1/quotes",
         json={
@@ -91,7 +93,9 @@ def test_quote_negotiate_order_and_delivery() -> None:
 
 
 def test_catalog_exposes_machine_readable_contract_and_current_pricing() -> None:
-    client = TestClient(create_app(Settings(ledger_path=":memory:")))
+    client = TestClient(
+        create_app(Settings(ledger_path=":memory:", seller_allow_insecure_dev=True))
+    )
 
     catalog = client.get("/v1/catalog").json()
     assert {item["price"] for item in catalog} == {6}
@@ -149,7 +153,9 @@ def test_configured_bearer_token_protects_non_discovery_endpoints() -> None:
 
 
 def test_order_input_rejects_mixed_tasks_before_it_is_persisted() -> None:
-    client = TestClient(create_app(Settings(ledger_path=":memory:")))
+    client = TestClient(
+        create_app(Settings(ledger_path=":memory:", seller_allow_insecure_dev=True))
+    )
     quote = client.post(
         "/v1/quotes",
         json={
@@ -190,7 +196,9 @@ def test_order_input_rejects_mixed_tasks_before_it_is_persisted() -> None:
 
 
 def test_order_input_rejects_naive_timestamp_before_it_is_persisted() -> None:
-    client = TestClient(create_app(Settings(ledger_path=":memory:")))
+    client = TestClient(
+        create_app(Settings(ledger_path=":memory:", seller_allow_insecure_dev=True))
+    )
     quote = client.post(
         "/v1/quotes",
         json={

@@ -21,6 +21,7 @@ from sharedos_commerce_agent.production import (
 )
 from sharedos_commerce_agent.sharednet_adapter import (
     SharedNetMessage,
+    SharedNetMessagePage,
     SharedNetRoomClient,
 )
 
@@ -42,6 +43,43 @@ class RecordingRoomReasoningModel:
                 "contract are available at the URLs in this response."
             )
         }
+
+
+class InMemoryRoomClient:
+    def __init__(self, messages: list[SharedNetMessage]) -> None:
+        self.messages = messages
+        self.sent: list[str] = []
+
+    async def receive_pending(self, inbox, *, timeout_seconds: int):
+        del timeout_seconds
+        inbox.receive_messages(
+            ROOM_ID,
+            [
+                {
+                    "sequence": item.sequence,
+                    "content": item.content,
+                    "message_id": item.message_id,
+                    "sender_instance_id": item.sender_instance_id,
+                }
+                for item in self.messages
+            ],
+            max(item.sequence for item in self.messages),
+        )
+        pending = list(self.messages)
+        self.messages = []
+        return pending
+
+    async def read(self, **kwargs):
+        del kwargs
+        return SharedNetMessagePage((), None, False)
+
+    async def say(self, content: str):
+        self.sent.append(content)
+        return SharedNetMessage(
+            sequence=100 + len(self.sent),
+            content=content,
+            message_id=f"msg_sent_{len(self.sent)}",
+        )
 
 
 ROOM_ID = "rom_ProdRoom01"
@@ -89,9 +127,7 @@ def test_identity_store_rejects_wrong_room_and_repairs_permissions(tmp_path) -> 
     path = tmp_path / "identity.json"
     store = RuntimeIdentityStore(str(path))
     store.save(
-        RuntimeIdentity(
-            room_id=ROOM_ID, member_id=MEMBER_ID, member_token=MEMBER_TOKEN
-        )
+        RuntimeIdentity(room_id=ROOM_ID, member_id=MEMBER_ID, member_token=MEMBER_TOKEN)
     )
     path.chmod(0o644)
 
@@ -145,9 +181,7 @@ async def test_bootstrap_refuses_anonymous_invite_join_by_default(tmp_path) -> N
         raise AssertionError("unsafe anonymous join must fail before the network")
 
     with pytest.raises(RuntimeConfigurationError, match="anonymous invite join"):
-        await bootstrap_room_runtime(
-            settings, transport=httpx.MockTransport(handler)
-        )
+        await bootstrap_room_runtime(settings, transport=httpx.MockTransport(handler))
 
 
 async def test_bootstrap_imports_official_cli_seat_without_join(tmp_path) -> None:
@@ -220,12 +254,9 @@ async def test_bootstrap_joins_once_persists_identity_and_history(tmp_path) -> N
         assert runtime.identity.member_id == MEMBER_ID
         assert runtime.agent.client.joined is True
         assert runtime.agent.inbox.message_cursor(ROOM_ID) == 7
-        assert stat.S_IMODE(
-            (tmp_path / "inbox.sqlite3").stat().st_mode
-        ) == 0o600
+        assert stat.S_IMODE((tmp_path / "inbox.sqlite3").stat().st_mode) == 0o600
         assert [
-            item["message_id"]
-            for item in runtime.agent.inbox.pending_messages(ROOM_ID)
+            item["message_id"] for item in runtime.agent.inbox.pending_messages(ROOM_ID)
         ] == ["msg_history-1"]
         assert calls == [f"POST /api/v1/rooms/{ROOM_ID}/join"]
         saved = RuntimeIdentityStore(settings.sharednet_state_path).load(ROOM_ID)
@@ -237,9 +268,7 @@ async def test_bootstrap_joins_once_persists_identity_and_history(tmp_path) -> N
 async def test_bootstrap_reuses_saved_identity_without_join(tmp_path) -> None:
     settings = _settings(tmp_path)
     RuntimeIdentityStore(settings.sharednet_state_path).save(
-        RuntimeIdentity(
-            room_id=ROOM_ID, member_id=MEMBER_ID, member_token=MEMBER_TOKEN
-        )
+        RuntimeIdentity(room_id=ROOM_ID, member_id=MEMBER_ID, member_token=MEMBER_TOKEN)
     )
 
     async def handler(_: httpx.Request) -> httpx.Response:
@@ -258,9 +287,7 @@ async def test_bootstrap_reuses_saved_identity_without_join(tmp_path) -> None:
 async def test_second_listener_for_same_identity_is_rejected(tmp_path) -> None:
     settings = _settings(tmp_path)
     RuntimeIdentityStore(settings.sharednet_state_path).save(
-        RuntimeIdentity(
-            room_id=ROOM_ID, member_id=MEMBER_ID, member_token=MEMBER_TOKEN
-        )
+        RuntimeIdentity(room_id=ROOM_ID, member_id=MEMBER_ID, member_token=MEMBER_TOKEN)
     )
 
     async def handler(_: httpx.Request) -> httpx.Response:
@@ -335,9 +362,7 @@ async def test_process_once_replies_then_acknowledges(tmp_path) -> None:
         [
             {
                 "sequence": 4,
-                "content": json.dumps(
-                    {"type": "product_query", "question": "price"}
-                ),
+                "content": json.dumps({"type": "product_query", "question": "price"}),
                 "message_id": "msg_question-4",
                 "sender_instance_id": "i_buyer",
             }
@@ -350,9 +375,7 @@ async def test_process_once_replies_then_acknowledges(tmp_path) -> None:
         if request.method == "GET":
             assert request.url.params["q"] == '"reply_to":"msg_question-4"'
             assert request.url.params["sender_instance_id"] == MEMBER_ID
-            return _response(
-                200, {"items": [], "next_cursor": 4, "has_more": False}
-            )
+            return _response(200, {"items": [], "next_cursor": 4, "has_more": False})
         sent.append(json.loads(request.content))
         return _response(
             201,
@@ -415,9 +438,7 @@ async def test_live_room_product_answer_uses_configured_reasoning_model(
 
     async def handler(request: httpx.Request) -> httpx.Response:
         if request.method == "GET":
-            return _response(
-                200, {"items": [], "next_cursor": 8, "has_more": False}
-            )
+            return _response(200, {"items": [], "next_cursor": 8, "has_more": False})
         sent.append(json.loads(request.content))
         return _response(
             201,
@@ -462,6 +483,42 @@ async def test_live_room_product_answer_uses_configured_reasoning_model(
         await client.close()
 
 
+async def test_model_failure_opens_circuit_and_does_not_block_every_message() -> None:
+    model = RecordingRoomReasoningModel(fail=True)
+    messages = [
+        SharedNetMessage(
+            sequence=index,
+            content=json.dumps(
+                {
+                    "type": "product_query",
+                    "to": "sharedos-commerce-agent",
+                    "question": f"What do I get? request {index}",
+                }
+            ),
+            message_id=f"msg_question_{index}",
+            sender_instance_id=f"i_buyer_{index}",
+        )
+        for index in (1, 2)
+    ]
+    client = InMemoryRoomClient(messages)
+    agent = SharedNetProductionAgent(
+        client=client,  # type: ignore[arg-type]
+        inbox=Ledger(":memory:"),
+        router=RoomMessageRouter(
+            agent_name="sharedos-commerce-agent", service_base_url=SERVICE_URL
+        ),
+        room_id=ROOM_ID,
+        member_id=MEMBER_ID,
+        reasoning_model=model,
+    )
+
+    assert await agent.process_once(timeout_seconds=0) == 2
+    assert len(model.calls) == 1
+    assert len(client.sent) == 2
+    assert agent.model_attempts == 1
+    assert agent.model_fallbacks == 1
+
+
 async def test_recovery_reconciles_remote_reply_before_ack(tmp_path) -> None:
     inbox = Ledger(str(tmp_path / "inbox.sqlite3"))
     inbox.receive_messages(
@@ -491,7 +548,7 @@ async def test_recovery_reconciles_remote_reply_before_ack(tmp_path) -> None:
                     {
                         "id": "msg_existing-reply",
                         "sequence": 9,
-                        "content": "{" + marker + ",\"type\":\"service_offer\"}",
+                        "content": "{" + marker + ',"type":"service_offer"}',
                         "sender_instance_id": MEMBER_ID,
                     }
                 ],

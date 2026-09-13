@@ -88,7 +88,9 @@ def test_two_connections_cannot_overwrite_identity(tmp_path):
 def test_public_conflict_is_409_persisted_and_spoofed_source_does_not_bypass(tmp_path):
     path = str(tmp_path / 'api.sqlite')
     events = [e.model_dump(mode='json') for e in sample()]
-    with TestClient(create_app(Settings(ledger_path=path))) as client:
+    with TestClient(
+        create_app(Settings(ledger_path=path, seller_allow_insecure_dev=True))
+    ) as client:
         service = 'a2a-interaction-trace'
         quote = client.post('/v1/quotes', json=dict(buyer_id='b', service_id=service, budget=6)).json()
         payload = dict(quote_id=quote['quote_id'], buyer_id='b', service_id=service, amount=6, idempotency_key='dedup-order-1', input={'events': events + [events[0]]})

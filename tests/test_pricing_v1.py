@@ -13,7 +13,9 @@ SERVICES = ['a2a-interaction-trace', 'a2a-interaction-risk-report']
 
 
 def client():
-    return TestClient(create_app(Settings(ledger_path=':memory:')))
+    return TestClient(
+        create_app(Settings(ledger_path=':memory:', seller_allow_insecure_dev=True))
+    )
 
 
 def quote(c, service=SERVICES[0], budget=100):
@@ -92,4 +94,3 @@ def test_expired_quote_rejects_negotiation_and_order(monkeypatch):
     c=client();q=quote(c).json()
     assert c.post(f"/v1/quotes/{q['quote_id']}/negotiate",json={'buyer_offer':5}).status_code==410
     assert c.post('/v1/orders',json=order_body(q)).status_code==410
-

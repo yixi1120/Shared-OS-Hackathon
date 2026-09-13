@@ -23,12 +23,25 @@ def test_agent_client_reads_free_endpoints_and_delivers_paid_report():
                     "is_operator": False,
                 },
             )
+        if request.url.path == "/v1/agents/register":
+            return httpx.Response(
+                201,
+                json={
+                    "agent_id": "agt_registered",
+                    "buyer_id": "agt_registered",
+                    "api_key": "sca_registered-secret",
+                },
+            )
         if request.url.path == "/v1/quotes":
             return httpx.Response(200, json={"quote_id": "quote-1", "ask_price": 6})
         if request.url.path == "/v1/orders":
-            return httpx.Response(200, json={"trade_id": "trade-1", "status": "accepted"})
+            return httpx.Response(
+                200, json={"trade_id": "trade-1", "status": "accepted"}
+            )
         if request.url.path == "/v1/orders/trade-1/deliver":
-            return httpx.Response(200, json={"trade_id": "trade-1", "status": "delivered"})
+            return httpx.Response(
+                200, json={"trade_id": "trade-1", "status": "delivered"}
+            )
         return httpx.Response(404)
 
     with InteractionServiceClient(
@@ -40,6 +53,12 @@ def test_agent_client_reads_free_endpoints_and_delivers_paid_report():
         assert client.catalog()[0]["service_id"] == "a2a-interaction-trace"
         assert client.contract()["input"]["type"] == "object"
         assert client.whoami()["principal_id"] == "buyer-1"
+        registration = client.register("buyer-agent")
+        assert registration["buyer_id"] == "agt_registered"
+        assert client.client.headers["Authorization"] == (
+            "Bearer sca_registered-secret"
+        )
+        client.client.headers["Authorization"] = "Bearer test-token"
         result = client.analyze(
             service_id="a2a-interaction-trace",
             buyer_id="buyer-1",
@@ -50,4 +69,7 @@ def test_agent_client_reads_free_endpoints_and_delivers_paid_report():
 
     assert result["delivery"]["status"] == "delivered"
     assert result["credit_settlement"] == "not_evaluated"
-    assert all(request.headers.get("Authorization") == "Bearer test-token" for request in requests)
+    assert all(
+        request.headers.get("Authorization") == "Bearer test-token"
+        for request in requests
+    )

@@ -28,7 +28,9 @@ def test_every_frozen_flag_has_a_case():
 
 @pytest.mark.parametrize('service', ['a2a-interaction-trace', 'a2a-interaction-risk-report'])
 def test_failed_task_report_is_delivered(service):
-    client = TestClient(create_app(Settings(ledger_path=':memory:')))
+    client = TestClient(
+        create_app(Settings(ledger_path=':memory:', seller_allow_insecure_dev=True))
+    )
     q = client.post('/v1/quotes', json=dict(buyer_id='b', service_id=service, budget=30)).json()
     failure = next(c for c in CASES if c['id'] == 'explicit_failure')
     # Spoofing a platform source must not improve public output.

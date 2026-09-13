@@ -7,7 +7,7 @@ from pathlib import Path
 from threading import RLock
 from typing import Iterator
 
-from .models import InteractionEvent, OrderStatus, TradeReceipt
+from .models import InteractionEvent, OrderStatus, Quote, TradeReceipt
 
 
 class Ledger:
@@ -58,10 +58,98 @@ class Ledger:
             connection.execute(
                 "CREATE INDEX IF NOT EXISTS idx_trades_buyer_id ON trades(buyer_id)"
             )
-            connection.execute("CREATE TABLE IF NOT EXISTS event_identities (identity_key TEXT PRIMARY KEY, content_hash TEXT NOT NULL)")
-            connection.execute("CREATE TABLE IF NOT EXISTS event_conflicts (id INTEGER PRIMARY KEY, identity_key TEXT NOT NULL, previous_hash TEXT NOT NULL, incoming_hash TEXT NOT NULL, recorded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)")
-            connection.execute("CREATE TABLE IF NOT EXISTS room_inbox (room_id TEXT NOT NULL, message_id TEXT NOT NULL, payload TEXT NOT NULL, acknowledged INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(room_id, message_id))")
-            connection.execute("CREATE TABLE IF NOT EXISTS room_cursors (room_id TEXT PRIMARY KEY, cursor INTEGER NOT NULL)")
+            connection.execute(
+                "CREATE TABLE IF NOT EXISTS event_identities (identity_key TEXT PRIMARY KEY, content_hash TEXT NOT NULL)"
+            )
+            connection.execute(
+                "CREATE TABLE IF NOT EXISTS event_conflicts (id INTEGER PRIMARY KEY, identity_key TEXT NOT NULL, previous_hash TEXT NOT NULL, incoming_hash TEXT NOT NULL, recorded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"
+            )
+            connection.execute(
+                "CREATE TABLE IF NOT EXISTS room_inbox (room_id TEXT NOT NULL, message_id TEXT NOT NULL, payload TEXT NOT NULL, acknowledged INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(room_id, message_id))"
+            )
+            connection.execute(
+                "CREATE TABLE IF NOT EXISTS room_cursors (room_id TEXT PRIMARY KEY, cursor INTEGER NOT NULL)"
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS quotes (
+                    quote_id TEXT PRIMARY KEY,
+                    payload TEXT NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS quote_negotiations (
+                    quote_id TEXT PRIMARY KEY,
+                    agreed_price INTEGER,
+                    low_offers INTEGER NOT NULL DEFAULT 0,
+                    closed INTEGER NOT NULL DEFAULT 0,
+                    FOREIGN KEY(quote_id) REFERENCES quotes(quote_id)
+                )
+                """
+            )
+
+    def record_quote(self, quote: Quote) -> Quote:
+        payload = quote.model_dump_json()
+        with self._connect() as connection:
+            existing = connection.execute(
+                "SELECT payload FROM quotes WHERE quote_id = ?", (quote.quote_id,)
+            ).fetchone()
+            if existing is not None:
+                stored = Quote.model_validate_json(existing["payload"])
+                if stored != quote:
+                    raise ValueError("quote_id was already used for a different quote")
+                return stored
+            connection.execute(
+                "INSERT INTO quotes(quote_id, payload) VALUES (?, ?)",
+                (quote.quote_id, payload),
+            )
+            connection.execute(
+                "INSERT INTO quote_negotiations(quote_id) VALUES (?)",
+                (quote.quote_id,),
+            )
+        return quote
+
+    def get_quote(self, quote_id: str) -> Quote | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT payload FROM quotes WHERE quote_id = ?", (quote_id,)
+            ).fetchone()
+        return Quote.model_validate_json(row["payload"]) if row else None
+
+    def quote_negotiation(self, quote_id: str) -> tuple[int | None, int, bool]:
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT agreed_price, low_offers, closed FROM quote_negotiations
+                WHERE quote_id = ?
+                """,
+                (quote_id,),
+            ).fetchone()
+        if row is None:
+            raise KeyError(f"Unknown quote: {quote_id}")
+        return row["agreed_price"], row["low_offers"], bool(row["closed"])
+
+    def update_quote_negotiation(
+        self,
+        quote_id: str,
+        *,
+        agreed_price: int | None,
+        low_offers: int,
+        closed: bool,
+    ) -> None:
+        with self._connect() as connection:
+            changed = connection.execute(
+                """
+                UPDATE quote_negotiations
+                SET agreed_price = ?, low_offers = ?, closed = ?
+                WHERE quote_id = ?
+                """,
+                (agreed_price, low_offers, int(closed), quote_id),
+            ).rowcount
+        if changed != 1:
+            raise KeyError(f"Unknown quote: {quote_id}")
 
     def receive_messages(self, room_id: str, messages: list[dict], cursor: int) -> None:
         """Save inbox and receive cursor in one transaction before dispatch."""
@@ -70,27 +158,48 @@ class Ledger:
             for message in messages:
                 message_id = message.get("message_id")
                 if not message_id:
-                    raise ValueError("room message requires message_id for replay protection")
+                    raise ValueError(
+                        "room message requires message_id for replay protection"
+                    )
                 payload = json.dumps(message, sort_keys=True)
-                old = connection.execute("SELECT payload FROM room_inbox WHERE room_id=? AND message_id=?", (room_id, message_id)).fetchone()
+                old = connection.execute(
+                    "SELECT payload FROM room_inbox WHERE room_id=? AND message_id=?",
+                    (room_id, message_id),
+                ).fetchone()
                 if old is not None and old[0] != payload:
                     raise ValueError("room_message_identity_conflict")
-                connection.execute("INSERT OR IGNORE INTO room_inbox(room_id, message_id, payload) VALUES (?, ?, ?)", (room_id, message_id, payload))
-            connection.execute("INSERT INTO room_cursors VALUES (?, ?) ON CONFLICT(room_id) DO UPDATE SET cursor=MAX(cursor, excluded.cursor)", (room_id, cursor))
+                connection.execute(
+                    "INSERT OR IGNORE INTO room_inbox(room_id, message_id, payload) VALUES (?, ?, ?)",
+                    (room_id, message_id, payload),
+                )
+            connection.execute(
+                "INSERT INTO room_cursors VALUES (?, ?) ON CONFLICT(room_id) DO UPDATE SET cursor=MAX(cursor, excluded.cursor)",
+                (room_id, cursor),
+            )
 
     def message_cursor(self, room_id: str) -> int:
         with self._connect() as connection:
-            row = connection.execute("SELECT cursor FROM room_cursors WHERE room_id=?", (room_id,)).fetchone()
+            row = connection.execute(
+                "SELECT cursor FROM room_cursors WHERE room_id=?", (room_id,)
+            ).fetchone()
             return row[0] if row else 0
 
     def pending_messages(self, room_id: str) -> list[dict]:
         with self._connect() as connection:
-            rows = connection.execute("SELECT payload FROM room_inbox WHERE room_id=? AND acknowledged=0 ORDER BY rowid", (room_id,)).fetchall()
-            return sorted((json.loads(row[0]) for row in rows), key=lambda m: m["sequence"])
+            rows = connection.execute(
+                "SELECT payload FROM room_inbox WHERE room_id=? AND acknowledged=0 ORDER BY rowid",
+                (room_id,),
+            ).fetchall()
+            return sorted(
+                (json.loads(row[0]) for row in rows), key=lambda m: m["sequence"]
+            )
 
     def acknowledge_message(self, room_id: str, message_id: str) -> None:
         with self._connect() as connection:
-            result = connection.execute("UPDATE room_inbox SET acknowledged=1 WHERE room_id=? AND message_id=?", (room_id, message_id))
+            result = connection.execute(
+                "UPDATE room_inbox SET acknowledged=1 WHERE room_id=? AND message_id=?",
+                (room_id, message_id),
+            )
             if result.rowcount != 1:
                 raise KeyError("Cannot acknowledge an unknown room message")
 
@@ -105,17 +214,26 @@ class Ledger:
             connection.execute("BEGIN IMMEDIATE")
             for event in events:
                 key, digest = identity(event)
-                row = connection.execute("SELECT content_hash FROM event_identities WHERE identity_key = ?", (key,)).fetchone()
+                row = connection.execute(
+                    "SELECT content_hash FROM event_identities WHERE identity_key = ?",
+                    (key,),
+                ).fetchone()
                 previous = batch.get(key, row[0] if row else None)
                 if previous is not None and previous != digest:
-                    connection.execute("INSERT INTO event_conflicts (identity_key, previous_hash, incoming_hash) VALUES (?, ?, ?)", (key, previous, digest))
+                    connection.execute(
+                        "INSERT INTO event_conflicts (identity_key, previous_hash, incoming_hash) VALUES (?, ?, ?)",
+                        (key, previous, digest),
+                    )
                     conflict = (key, previous, digest)
                     break
                 if key not in batch:
                     unique.append(event)
                     batch[key] = digest
             if conflict is None:
-                connection.executemany("INSERT OR IGNORE INTO event_identities VALUES (?, ?)", batch.items())
+                connection.executemany(
+                    "INSERT OR IGNORE INTO event_identities VALUES (?, ?)",
+                    batch.items(),
+                )
         # Raise after committing the audit entry, so restarts retain the conflict.
         if conflict is not None:
             raise EventConflictError(*conflict)
@@ -123,7 +241,12 @@ class Ledger:
 
     def event_conflicts(self) -> list[dict]:
         with self._connect() as connection:
-            return [dict(row) for row in connection.execute("SELECT * FROM event_conflicts ORDER BY id")]
+            return [
+                dict(row)
+                for row in connection.execute(
+                    "SELECT * FROM event_conflicts ORDER BY id"
+                )
+            ]
 
     def record(self, receipt: TradeReceipt, *, idempotency_key: str) -> TradeReceipt:
         with self._connect() as connection:
@@ -182,6 +305,47 @@ class Ledger:
             assert row is not None
             return self._from_row(row)
 
+    def record_verified_settlement(
+        self, trade_id: str, *, transfer: dict
+    ) -> TradeReceipt:
+        """Attach one independently verified SharedNet transfer idempotently."""
+
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            row = connection.execute(
+                "SELECT * FROM trades WHERE trade_id = ?", (trade_id,)
+            ).fetchone()
+            if row is None:
+                raise KeyError(f"Unknown trade: {trade_id}")
+            receipt = self._from_row(row)
+            existing = receipt.metadata.get("verified_sharednet_settlement")
+            if existing is not None:
+                if existing != transfer:
+                    raise ValueError(
+                        "trade already has a different verified SharedNet settlement"
+                    )
+                return receipt
+            metadata = dict(receipt.metadata)
+            metadata["verified_sharednet_settlement"] = transfer
+            next_status = (
+                receipt.status
+                if receipt.status == OrderStatus.DELIVERED
+                else OrderStatus.PAID
+            )
+            connection.execute(
+                "UPDATE trades SET status = ?, metadata = ? WHERE trade_id = ?",
+                (
+                    next_status.value,
+                    json.dumps(metadata, sort_keys=True),
+                    trade_id,
+                ),
+            )
+            updated = connection.execute(
+                "SELECT * FROM trades WHERE trade_id = ?", (trade_id,)
+            ).fetchone()
+            assert updated is not None
+            return self._from_row(updated)
+
     def get(self, trade_id: str) -> TradeReceipt | None:
         with self._connect() as connection:
             row = connection.execute(
@@ -198,7 +362,9 @@ class Ledger:
 
     def list(self) -> list[TradeReceipt]:
         with self._connect() as connection:
-            rows = connection.execute("SELECT * FROM trades ORDER BY created_at").fetchall()
+            rows = connection.execute(
+                "SELECT * FROM trades ORDER BY created_at"
+            ).fetchall()
             return [self._from_row(row) for row in rows]
 
     @staticmethod

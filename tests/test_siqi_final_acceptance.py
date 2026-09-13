@@ -21,7 +21,9 @@ SCHEMAS = json.loads((ROOT / 'docs/siqi/schemas.json').read_text())
 @pytest.mark.parametrize('service', ['a2a-interaction-trace', 'a2a-interaction-risk-report'])
 def test_public_delivery_contract_and_replay(case_id, service):
     case = CASES[case_id]
-    with TestClient(create_app(Settings(ledger_path=':memory:'))) as client:
+    with TestClient(
+        create_app(Settings(ledger_path=':memory:', seller_allow_insecure_dev=True))
+    ) as client:
         quote = client.post('/v1/quotes', json={'buyer_id': 'acceptance-buyer', 'service_id': service, 'budget': 6})
         assert quote.status_code == 200
         # Untrusted labels, chat payment assertions and receipt-like strings cannot upgrade evidence.
@@ -67,7 +69,9 @@ def test_acceptance_duplicate_event_must_not_raise_score():
 @pytest.mark.parametrize('service', ['a2a-interaction-trace', 'a2a-interaction-risk-report'])
 def test_actual_accepted_price_does_not_change_report(service):
     outputs = []
-    with TestClient(create_app(Settings(ledger_path=':memory:'))) as client:
+    with TestClient(
+        create_app(Settings(ledger_path=':memory:', seller_allow_insecure_dev=True))
+    ) as client:
         for amount in [5, 6]:
             q = client.post('/v1/quotes', json=dict(buyer_id='price-check', service_id=service, budget=amount))
             assert q.status_code == 200

@@ -11,6 +11,7 @@ import signal
 import stat
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
+from time import monotonic
 from typing import Any
 from urllib.parse import urljoin, urlparse
 
@@ -19,8 +20,8 @@ import httpx
 from .arena import persistent_arena_runner
 from .config import Settings
 from .ledger import Ledger
-from .models import ArenaRunMode
 from .model_client import OpenAICompatibleModel
+from .models import ArenaRunMode
 from .reasoning import StructuredReasoningModel, enhance_room_product_answer
 from .sales import SalesPolicy
 from .seller import SellerService
@@ -32,7 +33,6 @@ from .sharednet_adapter import (
     SharedNetRoomClient,
     SharedNetRoutes,
 )
-
 
 LOGGER = logging.getLogger("sharedos_commerce_agent.production")
 ROOM_PROTOCOL = "a2a-interaction-intelligence.room.v1"
@@ -74,7 +74,9 @@ class RuntimeIdentityStore:
                 f"Cannot read SharedNet runtime identity: {self.path}"
             ) from exc
         if not isinstance(payload, dict):
-            raise RuntimeConfigurationError("SharedNet runtime identity must be an object")
+            raise RuntimeConfigurationError(
+                "SharedNet runtime identity must be an object"
+            )
         try:
             identity = RuntimeIdentity(
                 room_id=str(payload.get("room_id", "")),
@@ -162,9 +164,7 @@ def load_cli_room_identity(
         raise RuntimeConfigurationError(
             "SharedNet CLI credential has an unsupported schema"
         )
-    if str(payload.get("base_url", "")).rstrip("/") != sharednet_base_url.rstrip(
-        "/"
-    ):
+    if str(payload.get("base_url", "")).rstrip("/") != sharednet_base_url.rstrip("/"):
         raise RuntimeConfigurationError(
             "SharedNet CLI credential belongs to a different origin"
         )
@@ -270,7 +270,8 @@ class RoomMessageRouter:
                     (
                         value
                         for key in ("question", "message", "content")
-                        if isinstance((value := payload.get(key)), str) and value.strip()
+                        if isinstance((value := payload.get(key)), str)
+                        and value.strip()
                     ),
                     "",
                 )
@@ -395,6 +396,8 @@ class SharedNetProductionAgent:
     model_attempts: int = 0
     model_successes: int = 0
     model_fallbacks: int = 0
+    model_cooldown_seconds: float = 60.0
+    model_cooldown_until: float = 0.0
 
     async def process_once(self, *, timeout_seconds: int = 25) -> int:
         messages = await self.client.receive_pending(
@@ -413,8 +416,13 @@ class SharedNetProductionAgent:
 
             reply = self.router.reply(message)
             if reply is not None:
+                active_model = (
+                    self.reasoning_model
+                    if monotonic() >= self.model_cooldown_until
+                    else None
+                )
                 composition = await enhance_room_product_answer(
-                    model=self.reasoning_model,
+                    model=active_model,
                     original_message=message.content,
                     deterministic_reply=reply,
                 )
@@ -425,6 +433,9 @@ class SharedNetProductionAgent:
                     composition.model_attempted and not composition.model_succeeded
                 )
                 if composition.model_attempted and not composition.model_succeeded:
+                    self.model_cooldown_until = (
+                        monotonic() + self.model_cooldown_seconds
+                    )
                     LOGGER.warning(
                         "Room answer model fell back to deterministic policy: %s",
                         composition.fallback_reason,
@@ -460,7 +471,9 @@ class SharedNetProductionAgent:
                 RuntimeConfigurationError,
                 SharedNetProtocolError,
             ):
-                LOGGER.exception("SharedNet receive/dispatch failed; pending input retained")
+                LOGGER.exception(
+                    "SharedNet receive/dispatch failed; pending input retained"
+                )
                 try:
                     await asyncio.wait_for(active_stop.wait(), timeout=retry_seconds)
                 except TimeoutError:
@@ -625,7 +638,9 @@ async def run_arena_graph(
             "ARENA_BASE_URL and ARENA_API_TOKEN are required for Arena graph mode"
         )
     if settings.agent_node_id is None:
-        raise RuntimeConfigurationError("AGENT_NODE_ID is required for Arena graph mode")
+        raise RuntimeConfigurationError(
+            "AGENT_NODE_ID is required for Arena graph mode"
+        )
     client = HttpArenaClient(
         base_url=settings.arena_base_url,
         api_token=settings.arena_api_token,
@@ -633,12 +648,169 @@ async def run_arena_graph(
     )
     try:
         async with persistent_arena_runner(client, settings=settings) as runner:
-            report = await runner.run_round(
-                settings.agent_node_id, mode, run_id=run_id
-            )
+            report = await runner.run_round(settings.agent_node_id, mode, run_id=run_id)
             return report.model_dump(mode="json")
     finally:
         await client.close()
+
+
+async def production_diagnostics(
+    settings: Settings, *, test_generation: bool = False
+) -> dict[str, Any]:
+    """Return a secret-free connectivity and configuration report."""
+
+    report: dict[str, Any] = {
+        "build_sha": settings.build_sha,
+        "model": {"configured": bool(settings.model_api_key)},
+        "service": {"configured": bool(settings.service_base_url)},
+        "sharednet": {
+            "room_configured": bool(settings.sharednet_room_id),
+            "credential_configured": bool(
+                settings.sharednet_member_token
+                or settings.sharednet_cli_credential_path
+            ),
+        },
+    }
+
+    model_report = report["model"]
+    if settings.model_api_key:
+        try:
+            async with httpx.AsyncClient(
+                base_url=settings.model_base_url,
+                headers={"Authorization": f"Bearer {settings.model_api_key}"},
+                timeout=settings.model_request_timeout_seconds,
+            ) as client:
+                models_response, key_response = await asyncio.gather(
+                    client.get("/models"), client.get("/key")
+                )
+                models_response.raise_for_status()
+                key_response.raise_for_status()
+                payload = models_response.json()
+                identifiers = {
+                    item.get("id")
+                    for item in payload.get("data", [])
+                    if isinstance(item, dict)
+                }
+                model_report.update(
+                    {
+                        "gateway_reachable": True,
+                        "key_accepted": True,
+                        "primary_available": settings.model_name in identifiers,
+                        "fallback_available": (
+                            settings.model_fallback_name in identifiers
+                        ),
+                    }
+                )
+        except Exception as exc:
+            model_report.update(
+                {
+                    "gateway_reachable": False,
+                    "key_accepted": False,
+                    "error_type": type(exc).__name__,
+                }
+            )
+        if test_generation and model_report.get("key_accepted"):
+            try:
+                generated = await OpenAICompatibleModel(settings).complete_json(
+                    system="Return the requested health response.",
+                    prompt='Return {"status":"ok"}.',
+                    json_schema={
+                        "type": "object",
+                        "properties": {"status": {"const": "ok"}},
+                        "required": ["status"],
+                        "additionalProperties": False,
+                    },
+                )
+                model_report["generation_valid"] = generated == {"status": "ok"}
+            except Exception as exc:
+                model_report.update(
+                    {"generation_valid": False, "generation_error": str(exc)}
+                )
+
+    service_report = report["service"]
+    if settings.service_base_url:
+        try:
+            async with httpx.AsyncClient(
+                base_url=settings.service_base_url,
+                timeout=8,
+                follow_redirects=True,
+            ) as client:
+                health_response, card_response = await asyncio.gather(
+                    client.get("/health"), client.get("/.well-known/agent.json")
+                )
+                health_response.raise_for_status()
+                card_response.raise_for_status()
+                health = health_response.json()
+                card = card_response.json()
+                service_report.update(
+                    {
+                        "reachable": True,
+                        "registration_advertised": (
+                            card.get("authentication", {}).get("registration")
+                            == "/v1/agents/register"
+                        ),
+                        "remote_build_sha": health.get("build_sha"),
+                        "build_matches": (
+                            settings.build_sha == "unknown"
+                            or health.get("build_sha") == settings.build_sha
+                        ),
+                    }
+                )
+        except Exception as exc:
+            service_report.update(
+                {"reachable": False, "error_type": type(exc).__name__}
+            )
+
+    sharednet_report = report["sharednet"]
+    if settings.sharednet_room_id and (
+        settings.sharednet_member_token or settings.sharednet_cli_credential_path
+    ):
+        try:
+            member_token = settings.sharednet_member_token
+            member_id = settings.sharednet_member_id
+            if member_token is None and settings.sharednet_cli_credential_path:
+                identity = load_cli_room_identity(
+                    settings.sharednet_cli_credential_path,
+                    room_id=settings.sharednet_room_id,
+                    sharednet_base_url=settings.sharednet_base_url,
+                )
+                member_token = identity.member_token
+                member_id = identity.member_id
+            client = SharedNetRoomClient(
+                base_url=settings.sharednet_base_url,
+                room_id=settings.sharednet_room_id,
+                member_token=member_token,
+            )
+            try:
+                balance = await client.credit_balance()
+            finally:
+                await client.close()
+            sharednet_report.update(
+                {
+                    "reachable": True,
+                    "member_id": member_id,
+                    "principal_id": balance.principal_id,
+                    "balance": balance.balance,
+                }
+            )
+        except Exception as exc:
+            sharednet_report.update(
+                {"reachable": False, "error_type": type(exc).__name__}
+            )
+
+    report["ready"] = {
+        "model": bool(
+            model_report.get("key_accepted") and model_report.get("primary_available")
+        ),
+        "seller": bool(
+            service_report.get("reachable")
+            and service_report.get("registration_advertised")
+            and service_report.get("build_matches")
+        ),
+        "listener": bool(sharednet_report.get("reachable")),
+    }
+    report["ready"]["complete"] = all(report["ready"].values())
+    return report
 
 
 def _identity_from_join(result: SharedNetJoinResult) -> RuntimeIdentity:
@@ -688,15 +860,24 @@ def _parser() -> argparse.ArgumentParser:
     arena = subparsers.add_parser(
         "arena", help="Run the LangGraph workflow against organizer-published routes."
     )
-    arena.add_argument(
-        "--mode", choices=["critique", "market", "full"], required=True
-    )
+    arena.add_argument("--mode", choices=["critique", "market", "full"], required=True)
     arena.add_argument("--run-id")
+    doctor = subparsers.add_parser(
+        "doctor", help="Run secret-free model, Seller, and SharedNet readiness checks."
+    )
+    doctor.add_argument("--test-generation", action="store_true")
+    doctor.add_argument("--strict", action="store_true")
     return parser
 
 
 async def _run(arguments: argparse.Namespace) -> int:
     settings = Settings.from_env()
+    if arguments.command == "doctor":
+        report = await production_diagnostics(
+            settings, test_generation=arguments.test_generation
+        )
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0 if report["ready"]["complete"] or not arguments.strict else 2
     if arguments.command == "arena":
         report = await run_arena_graph(
             settings, mode=ArenaRunMode(arguments.mode), run_id=arguments.run_id

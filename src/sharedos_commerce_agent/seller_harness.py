@@ -186,7 +186,9 @@ async def run_seller_harness(
     if not run_id.strip() or len(run_id) > 64:
         raise ValueError("run_id must contain 1 to 64 characters")
 
-    app = create_app(Settings(ledger_path=ledger_path))
+    app = create_app(
+        Settings(ledger_path=ledger_path, seller_allow_insecure_dev=True)
+    )
     transport = httpx.ASGITransport(app=app)
     rng = random.Random(seed)
     started = perf_counter()

@@ -23,7 +23,7 @@ class Settings:
     model_name: str = "z-ai/glm-5.3-flash"
     model_fallback_name: str = "deepseek/deepseek-v4-flash-0731"
     model_max_output_tokens: int = 800
-    model_request_timeout_seconds: float = 45.0
+    model_request_timeout_seconds: float = 8.0
     arena_base_url: str | None = None
     arena_api_token: str | None = field(default=None, repr=False)
     arena_discover_route: str | None = None
@@ -48,6 +48,13 @@ class Settings:
     sharednet_allow_anonymous_join: bool = False
     seller_api_token: str | None = field(default=None, repr=False)
     seller_agent_tokens_json: str | None = field(default=None, repr=False)
+    seller_registration_enabled: bool = True
+    seller_allow_insecure_dev: bool = False
+    seller_registration_limit_per_hour: int = 100
+    seller_agent_requests_per_minute: int = 120
+    require_sharednet_payment: bool = False
+    sharednet_principal_id: str | None = None
+    build_sha: str = "unknown"
     ledger_path: str = "./commerce.sqlite3"
     checkpoint_path: str = "./checkpoints.sqlite3"
     operation_journal_path: str = "./outbound-operations.sqlite3"
@@ -63,7 +70,9 @@ class Settings:
                 "MODEL_FALLBACK_NAME", defaults.model_fallback_name
             ),
             model_max_output_tokens=int(
-                os.getenv("MODEL_MAX_OUTPUT_TOKENS", str(defaults.model_max_output_tokens))
+                os.getenv(
+                    "MODEL_MAX_OUTPUT_TOKENS", str(defaults.model_max_output_tokens)
+                )
             ),
             model_request_timeout_seconds=float(
                 os.getenv(
@@ -115,10 +124,35 @@ class Settings:
             ),
             seller_api_token=os.getenv("SELLER_API_TOKEN") or None,
             seller_agent_tokens_json=os.getenv("SELLER_AGENT_TOKENS_JSON") or None,
-            ledger_path=os.getenv("LEDGER_PATH", defaults.ledger_path),
-            checkpoint_path=os.getenv(
-                "CHECKPOINT_PATH", defaults.checkpoint_path
+            seller_registration_enabled=_env_flag(
+                "SELLER_REGISTRATION_ENABLED", defaults.seller_registration_enabled
             ),
+            seller_allow_insecure_dev=_env_flag(
+                "SELLER_ALLOW_INSECURE_DEV", defaults.seller_allow_insecure_dev
+            ),
+            seller_registration_limit_per_hour=int(
+                os.getenv(
+                    "SELLER_REGISTRATION_LIMIT_PER_HOUR",
+                    str(defaults.seller_registration_limit_per_hour),
+                )
+            ),
+            seller_agent_requests_per_minute=int(
+                os.getenv(
+                    "SELLER_AGENT_REQUESTS_PER_MINUTE",
+                    str(defaults.seller_agent_requests_per_minute),
+                )
+            ),
+            require_sharednet_payment=_env_flag(
+                "REQUIRE_SHAREDNET_PAYMENT", defaults.require_sharednet_payment
+            ),
+            sharednet_principal_id=os.getenv("SHAREDNET_PRINCIPAL_ID") or None,
+            build_sha=(
+                os.getenv("BUILD_SHA")
+                or os.getenv("GIT_COMMIT_SHA")
+                or defaults.build_sha
+            ),
+            ledger_path=os.getenv("LEDGER_PATH", defaults.ledger_path),
+            checkpoint_path=os.getenv("CHECKPOINT_PATH", defaults.checkpoint_path),
             operation_journal_path=os.getenv(
                 "OPERATION_JOURNAL_PATH", defaults.operation_journal_path
             ),

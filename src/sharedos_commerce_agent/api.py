@@ -1,24 +1,35 @@
 from __future__ import annotations
 
+from dataclasses import asdict
 from datetime import datetime, timezone
 from threading import RLock
 from typing import Annotated, Any
 
+import httpx
 import uvicorn
-from fastapi import Depends, FastAPI, Header, HTTPException
-from pydantic import BaseModel, Field
+from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response, status
+from pydantic import BaseModel, ConfigDict, Field
 
-from .auth import AuthenticatedPrincipal, InvalidCredentialError, SellerAuthenticator
+from .auth import (
+    AgentRateLimitError,
+    AgentRegistry,
+    AuthenticatedPrincipal,
+    InvalidCredentialError,
+    RegistrationRateLimitError,
+    SellerAuthenticator,
+)
 from .config import Settings
 from .ledger import Ledger
 from .models import (
     InteractionTraceInput,
     NegotiationDecision,
+    OrderStatus,
     Quote,
     QuoteRequest,
     TradeReceipt,
 )
 from .seller import SellerService, interaction_contract
+from .sharednet_adapter import SharedNetProtocolError, SharedNetRoomClient
 from .strategy import InsufficientBudget
 
 
@@ -35,17 +46,36 @@ class OrderRequest(BaseModel):
     input: InteractionTraceInput
 
 
-def create_app(settings: Settings | None = None) -> FastAPI:
+class RegistrationRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(min_length=1, max_length=100)
+
+
+class SettlementRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    transfer_id: str = Field(pattern=r"^txn_[0-9A-Za-z]{10}$")
+
+
+def create_app(
+    settings: Settings | None = None,
+    *,
+    sharednet_transport: httpx.AsyncBaseTransport | None = None,
+) -> FastAPI:
     active_settings = settings or Settings.from_env()
     seller = SellerService(Ledger(active_settings.ledger_path))
-    quotes: dict[str, Quote] = {}
-    agreed_prices: dict[str, int] = {}
-    low_offers: dict[str, int] = {}
-    closed_negotiations: set[str] = set()
     negotiation_lock = RLock()
+    registry = (
+        AgentRegistry(active_settings.ledger_path)
+        if active_settings.seller_registration_enabled
+        else None
+    )
     authenticator = SellerAuthenticator(
         operator_token=active_settings.seller_api_token,
         principal_tokens_json=active_settings.seller_agent_tokens_json,
+        registry=registry,
+        allow_insecure_dev=active_settings.seller_allow_insecure_dev,
     )
 
     def require_seller_auth(
@@ -57,7 +87,23 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         token or replace the dependency with the organizer's advertised A2A scheme.
         """
         try:
-            return authenticator.authenticate(authorization)
+            principal = authenticator.authenticate(authorization)
+            if (
+                registry is not None
+                and principal.principal_id is not None
+                and not principal.is_operator
+            ):
+                registry.consume_request(
+                    principal.principal_id,
+                    limit_per_minute=active_settings.seller_agent_requests_per_minute,
+                )
+            return principal
+        except AgentRateLimitError as exc:
+            raise HTTPException(
+                status_code=429,
+                detail="Agent request rate limit exceeded",
+                headers={"Retry-After": "60"},
+            ) from exc
         except InvalidCredentialError as exc:
             raise HTTPException(
                 status_code=401,
@@ -74,6 +120,25 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 detail="Authenticated principal does not match buyer_id",
             )
 
+    def sharednet_member_token() -> str:
+        if active_settings.sharednet_member_token:
+            return active_settings.sharednet_member_token
+        if (
+            active_settings.sharednet_cli_credential_path
+            and active_settings.sharednet_room_id
+        ):
+            from .production import load_cli_room_identity
+
+            return load_cli_room_identity(
+                active_settings.sharednet_cli_credential_path,
+                room_id=active_settings.sharednet_room_id,
+                sharednet_base_url=active_settings.sharednet_base_url,
+            ).member_token
+        raise HTTPException(
+            status_code=503,
+            detail="SharedNet settlement credential is not configured",
+        )
+
     app = FastAPI(
         title="SharedOS Agent Commerce Network",
         version="0.1.0",
@@ -81,8 +146,95 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
 
     @app.get("/health")
-    def health() -> dict[str, str]:
-        return {"status": "ok"}
+    def health() -> dict[str, Any]:
+        return {
+            "status": "ok",
+            "version": app.version,
+            "build_sha": active_settings.build_sha,
+            "authentication": "enabled" if authenticator.enabled else "disabled",
+            "registration": bool(registry),
+        }
+
+    @app.get("/.well-known/agent.json")
+    def agent_card() -> dict[str, Any]:
+        workflow = ["register", "quote", "order"]
+        if active_settings.require_sharednet_payment:
+            workflow.append("settlement")
+        workflow.append("deliver")
+        return {
+            "name": "A2A Interaction Intelligence Seller",
+            "authentication": {
+                "type": "bearer",
+                "registration": "/v1/agents/register",
+                "registration_method": "POST",
+                "registration_body": {"name": "your-agent-name"},
+                "token_field": "api_key",
+                "buyer_id_field": "buyer_id",
+                "identity_scope": (
+                    "local Seller identity, not a verified SharedNet principal"
+                ),
+            },
+            "openapi": "/openapi.json",
+            "catalog": "/v1/catalog",
+            "contract": "/v1/contracts/interaction-v1",
+            "workflow": workflow,
+            "registration_limit_per_hour": (
+                active_settings.seller_registration_limit_per_hour
+            ),
+            "agent_requests_per_minute": (
+                active_settings.seller_agent_requests_per_minute
+            ),
+            "credit_settlement": "not_evaluated",
+        }
+
+    @app.post("/v1/agents/register", status_code=status.HTTP_201_CREATED)
+    def register(request: RegistrationRequest, connection: Request) -> dict[str, Any]:
+        if registry is None:
+            raise HTTPException(status_code=404, detail="Registration is disabled")
+        client_id = connection.client.host if connection.client else "unknown"
+        try:
+            registered = registry.register(
+                request.name,
+                client_id=client_id,
+                limit_per_hour=active_settings.seller_registration_limit_per_hour,
+            )
+        except RegistrationRateLimitError as exc:
+            raise HTTPException(
+                status_code=429,
+                detail="Registration rate limit exceeded",
+                headers={"Retry-After": "3600"},
+            ) from exc
+        return {
+            "agent_id": registered.agent_id,
+            "buyer_id": registered.agent_id,
+            "api_key": registered.api_key,
+            "token_type": "Bearer",
+            "identity_verified": False,
+            "credit_settlement": "not_evaluated",
+        }
+
+    @app.delete("/v1/agents/me/key", status_code=status.HTTP_204_NO_CONTENT)
+    def revoke_key(
+        authorization: Annotated[str | None, Header()] = None,
+    ) -> Response:
+        if registry is None:
+            raise HTTPException(status_code=404, detail="Registration is disabled")
+        try:
+            principal = authenticator.authenticate(authorization)
+        except InvalidCredentialError as exc:
+            raise HTTPException(
+                status_code=401,
+                detail="Missing or invalid bearer token",
+                headers={"WWW-Authenticate": "Bearer"},
+            ) from exc
+        if principal.mode != "registered-agent-token":
+            raise HTTPException(
+                status_code=403, detail="Only registered keys can revoke themselves"
+            )
+        _, _, credential = (authorization or "").partition(" ")
+        if not registry.revoke(credential):
+            raise HTTPException(status_code=401, detail="Key is already revoked")
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
 
     @app.get("/v1/catalog")
     def catalog() -> list[dict[str, Any]]:
@@ -117,8 +269,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             quote = seller.quote(request)
         except InsufficientBudget as exc:
             raise HTTPException(status_code=409, detail="insufficient_budget") from exc
-        quotes[quote.quote_id] = quote
-        return quote
+        return seller.ledger.record_quote(quote)
 
     @app.post(
         "/v1/quotes/{quote_id}/negotiate",
@@ -129,33 +280,42 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         request: NegotiationRequest,
         principal: AuthenticatedPrincipal = Depends(require_seller_auth),
     ) -> NegotiationDecision:
-        quote = quotes.get(quote_id)
+        quote = seller.ledger.get_quote(quote_id)
         if quote is None:
             raise HTTPException(status_code=404, detail="Unknown quote")
         require_buyer_identity(principal, quote.buyer_id)
         if quote.expires_at <= datetime.now(timezone.utc):
             raise HTTPException(status_code=410, detail="Quote expired")
         with negotiation_lock:
-            if quote_id in closed_negotiations:
+            agreed_price, low_offer_count, closed = seller.ledger.quote_negotiation(
+                quote_id
+            )
+            if closed:
                 return NegotiationDecision(
                     accepted=False,
                     message="Negotiation closed; request a new quote.",
                 )
-            if quote_id in agreed_prices:
+            if agreed_price is not None:
                 return NegotiationDecision(
                     accepted=True,
-                    final_price=agreed_prices[quote_id],
+                    final_price=agreed_price,
                     message="Previously agreed price remains binding.",
                 )
             decision = seller.pricing.negotiate(
-                quote, request.buyer_offer, prior_low_offers=low_offers.get(quote_id, 0)
+                quote, request.buyer_offer, prior_low_offers=low_offer_count
             )
             if decision.accepted and decision.final_price is not None:
-                agreed_prices[quote_id] = decision.final_price
+                agreed_price = decision.final_price
             elif request.buyer_offer < quote.reservation_price:
-                low_offers[quote_id] = low_offers.get(quote_id, 0) + 1
+                low_offer_count += 1
                 if decision.counter_price is None:
-                    closed_negotiations.add(quote_id)
+                    closed = True
+            seller.ledger.update_quote_negotiation(
+                quote_id,
+                agreed_price=agreed_price,
+                low_offers=low_offer_count,
+                closed=closed,
+            )
             return decision
 
     @app.post(
@@ -167,7 +327,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         principal: AuthenticatedPrincipal = Depends(require_seller_auth),
     ) -> TradeReceipt:
         require_buyer_identity(principal, request.buyer_id)
-        quote = quotes.get(request.quote_id)
+        quote = seller.ledger.get_quote(request.quote_id)
         if quote is None:
             raise HTTPException(status_code=404, detail="Unknown quote")
         if quote.expires_at <= datetime.now(timezone.utc):
@@ -175,12 +335,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if request.buyer_id != quote.buyer_id or request.service_id != quote.service_id:
             raise HTTPException(status_code=409, detail="Order does not match quote")
         with negotiation_lock:
-            if request.quote_id in closed_negotiations:
+            agreed_price, _, closed = seller.ledger.quote_negotiation(request.quote_id)
+            if closed:
                 raise HTTPException(
                     status_code=409,
                     detail="Negotiation closed; request a new quote",
                 )
-            expected_price = agreed_prices.get(request.quote_id, quote.ask_price)
+            expected_price = agreed_price or quote.ask_price
         if request.amount != expected_price:
             raise HTTPException(
                 status_code=409,
@@ -208,12 +369,71 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if receipt is None:
             raise HTTPException(status_code=404, detail=f"Unknown trade: {trade_id}")
         require_buyer_identity(principal, receipt.buyer_id)
+        if active_settings.require_sharednet_payment and receipt.status not in {
+            OrderStatus.PAID,
+            OrderStatus.DELIVERED,
+        }:
+            raise HTTPException(
+                status_code=402,
+                detail="A verified SharedNet settlement is required before delivery",
+            )
         try:
             return seller.deliver(trade_id)
         except KeyError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
         except ValueError as exc:
             raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+    @app.post("/v1/orders/{trade_id}/settlement")
+    async def verify_settlement(
+        trade_id: str,
+        request: SettlementRequest,
+        principal: AuthenticatedPrincipal = Depends(require_seller_auth),
+    ) -> dict[str, Any]:
+        receipt = seller.ledger.get(trade_id)
+        if receipt is None:
+            raise HTTPException(status_code=404, detail=f"Unknown trade: {trade_id}")
+        require_buyer_identity(principal, receipt.buyer_id)
+        if not active_settings.sharednet_room_id:
+            raise HTTPException(
+                status_code=503, detail="SHAREDNET_ROOM_ID is not configured"
+            )
+        if not active_settings.sharednet_principal_id:
+            raise HTTPException(
+                status_code=503,
+                detail="SHAREDNET_PRINCIPAL_ID is not configured",
+            )
+        client = SharedNetRoomClient(
+            base_url=active_settings.sharednet_base_url,
+            room_id=active_settings.sharednet_room_id,
+            member_token=sharednet_member_token(),
+            transport=sharednet_transport,
+        )
+        try:
+            transfer = await client.verify_received_transfer(
+                request.transfer_id,
+                recipient_principal_id=active_settings.sharednet_principal_id,
+                amount=receipt.amount,
+                room_id=active_settings.sharednet_room_id,
+                memo_contains=trade_id,
+            )
+        except SharedNetProtocolError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+        finally:
+            await client.close()
+        if transfer is None:
+            raise HTTPException(
+                status_code=404, detail="Transfer not found in SharedNet ledger"
+            )
+        stored = seller.ledger.record_verified_settlement(
+            trade_id, transfer=asdict(transfer)
+        )
+        return {
+            "trade_id": trade_id,
+            "status": stored.status.value,
+            "transfer_id": transfer.transfer_id,
+            "credit_settlement": "verified_separately",
+        }
 
     @app.get(
         "/v1/orders/{trade_id}",
