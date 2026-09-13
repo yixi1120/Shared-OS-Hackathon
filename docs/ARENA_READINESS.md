@@ -8,7 +8,7 @@
 - 付费服务：A2A Interaction Trace 与 A2A Interaction Risk Report；常规价均为 6 credits，底价 5。
 - 免费入口：health、catalog、interaction contract、Schema、示例和价格说明。
 - GitHub：https://github.com/yixi1120/Shared-OS-Hackathon
-- 公开服务：https://modelscope-sharedos.tail81043f.ts.net
+- 公开服务：https://modelscope-sharedos-1.tail81043f.ts.net
 - 外部客户端已验证 HTTPS、`/health`、Catalog、Schema、OpenAPI 与 Dashboard 返回正常；
   未携带凭据访问受保护端点返回 401。
 - Discord server：AICOO。

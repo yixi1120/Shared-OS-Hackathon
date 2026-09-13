@@ -48,7 +48,7 @@ npx -y sharednet@0.1.8 whoami --json
 或 member token 粘贴到聊天、日志或 Git：
 
 ```bash
-export SERVICE_BASE_URL=https://modelscope-sharedos.tail81043f.ts.net
+export SERVICE_BASE_URL=https://modelscope-sharedos-1.tail81043f.ts.net
 export SHAREDNET_ROOM_ID='<rom_...>'
 export SHAREDNET_CLI_CREDENTIAL_PATH='<绝对路径>/<i_...>.json'
 export SHAREDNET_STATE_PATH=/persistent/sharedos/.sharednet/runtime-identity.json

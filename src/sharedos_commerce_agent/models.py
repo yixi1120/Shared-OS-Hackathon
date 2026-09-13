@@ -281,6 +281,10 @@ class ArenaReport(BaseModel):
     progress: ArenaProgress
     rankings: list[RankingEntry]
     violations: list[str]
+    model_attempts: int = Field(default=0, ge=0)
+    model_successes: int = Field(default=0, ge=0)
+    model_fallbacks: int = Field(default=0, ge=0)
+    model_fallback_reasons: list[str] = Field(default_factory=list)
 
     @property
     def valid(self) -> bool:

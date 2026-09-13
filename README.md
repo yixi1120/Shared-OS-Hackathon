@@ -167,11 +167,15 @@ uv run seller-harness \
 
 ## Model and cost policy
 
-Copy `.env.example` to `.env` only when live model calls are needed. The default is
-OpenRouter with `z-ai/glm-5.3-flash`, falling back to
-`deepseek/deepseek-v4-flash-0731`. The client uses an OpenAI-compatible HTTP contract,
-so the provider or model can be swapped through environment variables without code
-changes. No OpenAI account or key is required.
+When `MODEL_API_KEY` is configured, the live SharedNet product-answer path and the Arena
+critique node actively call OpenRouter
+with `z-ai/glm-5.3-flash`, falling back to `deepseek/deepseek-v4-flash-0731`. Objective
+evidence and every money/compliance decision remain locked in deterministic code; the
+model writes only the evidence-bounded disagreement and suggestion. Every report exposes
+`model_attempts`, `model_successes`, and `model_fallbacks`, so a configured-but-unused or
+exhausted model cannot masquerade as an LLM-backed run. With no key, the runtime is
+explicitly deterministic. If a configured model and its fallback both fail, the runtime
+records that fallback and uses the deterministic answer or critique instead.
 
 Cost controls:
 
@@ -263,7 +267,7 @@ Then configure the public service and the CLI-created credential file without co
 its secret token into the shell or chat:
 
 ```bash
-export SERVICE_BASE_URL=https://modelscope-sharedos.tail81043f.ts.net
+export SERVICE_BASE_URL=https://modelscope-sharedos-1.tail81043f.ts.net
 export SHAREDNET_ROOM_ID=rom_from_organizer
 export SHAREDNET_CLI_CREDENTIAL_PATH='/home/service-user/.config/sharednet/rooms/rom_from_organizer/i_formalseat.json'
 uv run sharednet-agent listen --announce

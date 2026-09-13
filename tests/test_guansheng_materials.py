@@ -60,7 +60,7 @@ def test_verified_public_service_and_pending_runtime_identifiers():
     assert submission['qa_sharednet_validation']['seat_id'].startswith('i_')
     assert submission['qa_sharednet_validation']['sharednet_account_principal_id'].startswith('p_')
     assert submission['qa_sharednet_validation']['agent_id'] is None
-    assert submission['service_base_url'] == 'https://modelscope-sharedos.tail81043f.ts.net'
+    assert submission['service_base_url'] == 'https://modelscope-sharedos-1.tail81043f.ts.net'
     assert submission['confirmed_by']
     assert submission['confirmed_at']
     for key in ['sharednet_node_id', 'purpose_string', 'product_agent_addresses']:

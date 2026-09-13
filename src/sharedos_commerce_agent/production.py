@@ -20,6 +20,8 @@ from .arena import persistent_arena_runner
 from .config import Settings
 from .ledger import Ledger
 from .models import ArenaRunMode
+from .model_client import OpenAICompatibleModel
+from .reasoning import StructuredReasoningModel, enhance_room_product_answer
 from .sales import SalesPolicy
 from .seller import SellerService
 from .sharednet_adapter import (
@@ -389,6 +391,10 @@ class SharedNetProductionAgent:
     router: RoomMessageRouter
     room_id: str
     member_id: str
+    reasoning_model: StructuredReasoningModel | None = None
+    model_attempts: int = 0
+    model_successes: int = 0
+    model_fallbacks: int = 0
 
     async def process_once(self, *, timeout_seconds: int = 25) -> int:
         messages = await self.client.receive_pending(
@@ -406,6 +412,23 @@ class SharedNetProductionAgent:
                 continue
 
             reply = self.router.reply(message)
+            if reply is not None:
+                composition = await enhance_room_product_answer(
+                    model=self.reasoning_model,
+                    original_message=message.content,
+                    deterministic_reply=reply,
+                )
+                reply = composition.reply
+                self.model_attempts += int(composition.model_attempted)
+                self.model_successes += int(composition.model_succeeded)
+                self.model_fallbacks += int(
+                    composition.model_attempted and not composition.model_succeeded
+                )
+                if composition.model_attempted and not composition.model_succeeded:
+                    LOGGER.warning(
+                        "Room answer model fell back to deterministic policy: %s",
+                        composition.fallback_reason,
+                    )
             if reply is not None and not await self._remote_reply_exists(
                 self.router.reply_marker(message.message_id)
             ):
@@ -549,6 +572,9 @@ async def bootstrap_room_runtime(
             service_base_url=settings.service_base_url,
             payment_target=identity.member_id,
         )
+        reasoning_model = (
+            OpenAICompatibleModel(settings) if settings.model_api_key else None
+        )
         return BootstrappedRuntime(
             agent=SharedNetProductionAgent(
                 client=client,
@@ -556,6 +582,7 @@ async def bootstrap_room_runtime(
                 router=router,
                 room_id=room_id,
                 member_id=identity.member_id,
+                reasoning_model=reasoning_model,
             ),
             identity=identity,
             process_lock=process_lock,

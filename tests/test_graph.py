@@ -14,6 +14,29 @@ from sharedos_commerce_agent.operation_journal import (
     InMemoryOperationJournal,
     OperationStatus,
 )
+from sharedos_commerce_agent.model_client import OpenAICompatibleModel
+
+
+class RecordingReasoningModel:
+    def __init__(self, *, fail: bool = False) -> None:
+        self.fail = fail
+        self.calls: list[dict] = []
+
+    async def complete_json(self, **kwargs):
+        self.calls.append(kwargs)
+        if self.fail:
+            from sharedos_commerce_agent.model_client import ModelError
+
+            raise ModelError("simulated exhausted model balance")
+        return {
+            "disagreement": (
+                "The observed single response does not support the listing's broad "
+                "reliability claim without repeatability evidence."
+            ),
+            "suggestion": (
+                "Publish repeated-run results and a machine-verifiable output contract."
+            ),
+        }
 
 
 class SimulatedProcessCrash(BaseException):
@@ -154,6 +177,60 @@ async def test_market_round_skips_critique_actions() -> None:
     assert state["progress"].critiques == []
     assert state["progress"].spent_credits >= 80
     assert state["compliant"] is True
+
+
+async def test_configured_reasoning_model_is_used_for_every_critique() -> None:
+    model = RecordingReasoningModel()
+    graph = build_arena_graph(MockArenaClient(), reasoning_model=model)
+
+    state = await graph.ainvoke(
+        {
+            "agent_id": "agent-commerce-network",
+            "run_mode": ArenaRunMode.CRITIQUE,
+        }
+    )
+
+    assert state["compliant"] is True
+    assert len(model.calls) == 3
+    assert state["report"].model_attempts == 3
+    assert state["report"].model_successes == 3
+    assert state["report"].model_fallbacks == 0
+    assert all(
+        "repeatability evidence" in item.disagreement
+        for item in state["progress"].critiques
+    )
+
+
+async def test_model_failure_falls_back_without_bypassing_compliance() -> None:
+    model = RecordingReasoningModel(fail=True)
+    graph = build_arena_graph(MockArenaClient(), reasoning_model=model)
+
+    state = await graph.ainvoke(
+        {
+            "agent_id": "agent-commerce-network",
+            "run_mode": ArenaRunMode.CRITIQUE,
+        }
+    )
+
+    assert state["compliant"] is True
+    assert len(model.calls) == 3
+    assert state["report"].model_attempts == 3
+    assert state["report"].model_successes == 0
+    assert state["report"].model_fallbacks == 3
+    assert state["report"].model_fallback_reasons == ["ModelError"] * 3
+
+
+async def test_persistent_runner_wires_configured_model_key(tmp_path) -> None:
+    settings = Settings(
+        model_api_key="test-model-key",
+        checkpoint_path=str(tmp_path / "checkpoints.sqlite3"),
+        operation_journal_path=str(tmp_path / "operations.sqlite3"),
+    )
+
+    async with persistent_arena_runner(
+        MockArenaClient(), settings=settings
+    ) as runner:
+        assert isinstance(runner.reasoning_model, OpenAICompatibleModel)
 
 
 async def test_checkpoint_resume_reuses_purchase_idempotency_keys() -> None:

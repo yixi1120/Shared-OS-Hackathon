@@ -25,6 +25,25 @@ from sharedos_commerce_agent.sharednet_adapter import (
 )
 
 
+class RecordingRoomReasoningModel:
+    def __init__(self, *, fail: bool = False) -> None:
+        self.fail = fail
+        self.calls: list[dict] = []
+
+    async def complete_json(self, **kwargs):
+        self.calls.append(kwargs)
+        if self.fail:
+            from sharedos_commerce_agent.model_client import ModelError
+
+            raise ModelError("simulated unavailable model")
+        return {
+            "answer": (
+                "Both reports cost 6 credits, and the machine-readable catalog and "
+                "contract are available at the URLs in this response."
+            )
+        }
+
+
 ROOM_ID = "rom_ProdRoom01"
 MEMBER_ID = "i_ProdSeat01"
 MEMBER_TOKEN = "sni_production-secret"
@@ -366,6 +385,79 @@ async def test_process_once_replies_then_acknowledges(tmp_path) -> None:
         reply = json.loads(sent[0]["content"])
         assert reply["reply_to"] == "msg_question-4"
         assert inbox.pending_messages(ROOM_ID) == []
+    finally:
+        await client.close()
+
+
+async def test_live_room_product_answer_uses_configured_reasoning_model(
+    tmp_path,
+) -> None:
+    inbox = Ledger(str(tmp_path / "model-inbox.sqlite3"))
+    inbox.receive_messages(
+        ROOM_ID,
+        [
+            {
+                "sequence": 8,
+                "content": json.dumps(
+                    {
+                        "type": "product_query",
+                        "to": "sharedos-commerce-agent",
+                        "question": "What do I get for the price?",
+                    }
+                ),
+                "message_id": "msg_model_question",
+                "sender_instance_id": "i_buyer",
+            }
+        ],
+        8,
+    )
+    sent: list[dict] = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        if request.method == "GET":
+            return _response(
+                200, {"items": [], "next_cursor": 8, "has_more": False}
+            )
+        sent.append(json.loads(request.content))
+        return _response(
+            201,
+            {
+                "message": {
+                    "id": "msg_model_reply",
+                    "sequence": 9,
+                    "content": sent[-1]["content"],
+                }
+            },
+        )
+
+    model = RecordingRoomReasoningModel()
+    client = SharedNetRoomClient(
+        room_id=ROOM_ID,
+        member_token=MEMBER_TOKEN,
+        transport=httpx.MockTransport(handler),
+    )
+    agent = SharedNetProductionAgent(
+        client=client,
+        inbox=inbox,
+        router=RoomMessageRouter(
+            agent_name="sharedos-commerce-agent", service_base_url=SERVICE_URL
+        ),
+        room_id=ROOM_ID,
+        member_id=MEMBER_ID,
+        reasoning_model=model,
+    )
+    try:
+        assert await agent.process_once(timeout_seconds=0) == 1
+        assert len(model.calls) == 1
+        reply = json.loads(sent[0]["content"])
+        assert reply["reasoning"] == {
+            "mode": "llm",
+            "grounding": "locked_product_facts",
+        }
+        assert "6 credits" in reply["answer"]
+        assert agent.model_attempts == 1
+        assert agent.model_successes == 1
+        assert agent.model_fallbacks == 0
     finally:
         await client.close()
 

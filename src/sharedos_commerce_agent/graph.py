@@ -27,6 +27,7 @@ from .operation_journal import (
     OperationJournal,
     OperationStatus,
 )
+from .reasoning import EvidenceBoundedCritiqueComposer, StructuredReasoningModel
 from .strategy import ComplianceError, CritiqueStrategy, MarketStrategy
 
 
@@ -49,6 +50,10 @@ class ArenaGraphState(TypedDict, total=False):
     violations: Annotated[list[str], operator.add]
     report: ArenaReport
     compliant: bool
+    model_attempts: int
+    model_successes: int
+    model_fallbacks: int
+    model_fallback_reasons: Annotated[list[str], operator.add]
 
 
 def build_arena_graph(
@@ -59,6 +64,7 @@ def build_arena_graph(
     checkpointer=None,
     operation_journal: OperationJournal | None = None,
     max_concurrent_evaluations: int = 3,
+    reasoning_model: StructuredReasoningModel | None = None,
 ):
     """Compile the Arena workflow with business-relevant, testable nodes."""
 
@@ -68,6 +74,10 @@ def build_arena_graph(
     critique_policy = critique_strategy or CritiqueStrategy()
     market_policy = market_strategy or MarketStrategy()
     outbound_journal = operation_journal or InMemoryOperationJournal()
+    critique_composer = EvidenceBoundedCritiqueComposer(
+        policy=critique_policy,
+        model=reasoning_model,
+    )
 
     async def retry_idempotent(operation: Callable[[], Awaitable[object]]) -> object:
         """Retry once; the caller must reuse the same idempotency key."""
@@ -93,6 +103,10 @@ def build_arena_graph(
             "progress": progress.model_copy(deep=True),
             "rankings": [],
             "violations": [],
+            "model_attempts": 0,
+            "model_successes": 0,
+            "model_fallbacks": 0,
+            "model_fallback_reasons": [],
         }
 
     async def discover(state: ArenaGraphState) -> ArenaGraphState:
@@ -163,9 +177,21 @@ def build_arena_graph(
 
         progress = state["progress"].model_copy(deep=True)
         violations: list[str] = []
+        model_attempts = state.get("model_attempts", 0)
+        model_successes = state.get("model_successes", 0)
+        model_fallbacks = state.get("model_fallbacks", 0)
+        model_fallback_reasons: list[str] = []
         for index, listing in enumerate(state["evaluation_targets"]):
             result = state["results"][listing.service_id]
-            item = critique_policy.create(listing, result)
+            composition = await critique_composer.create(listing, result)
+            item = composition.critique
+            model_attempts += int(composition.model_attempted)
+            model_successes += int(composition.model_succeeded)
+            if composition.model_attempted and not composition.model_succeeded:
+                model_fallbacks += 1
+                model_fallback_reasons.append(
+                    composition.fallback_reason or "unknown-model-error"
+                )
             progress.critiques.append(item)
             idempotency_key = (
                 f"{state['run_id']}:feedback:{listing.seller_id}:{index}"
@@ -187,6 +213,10 @@ def build_arena_graph(
             "phase": "ranking",
             "progress": progress,
             "violations": violations,
+            "model_attempts": model_attempts,
+            "model_successes": model_successes,
+            "model_fallbacks": model_fallbacks,
+            "model_fallback_reasons": model_fallback_reasons,
         }
 
     async def rank(state: ArenaGraphState) -> ArenaGraphState:
@@ -524,6 +554,10 @@ def build_arena_graph(
             progress=progress,
             rankings=state.get("rankings", []),
             violations=all_violations,
+            model_attempts=state.get("model_attempts", 0),
+            model_successes=state.get("model_successes", 0),
+            model_fallbacks=state.get("model_fallbacks", 0),
+            model_fallback_reasons=state.get("model_fallback_reasons", []),
         )
         return {
             "phase": "complete",

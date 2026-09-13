@@ -19,6 +19,8 @@ from .models import (
     TradeReconciliation,
     TradeReceipt,
 )
+from .model_client import OpenAICompatibleModel
+from .reasoning import StructuredReasoningModel
 from .operation_journal import (
     InMemoryOperationJournal,
     OperationJournal,
@@ -63,6 +65,7 @@ class ArenaRunner:
         operation_journal: OperationJournal | None = None,
         sales_policy: SalesPolicy | None = None,
         max_concurrent_evaluations: int = 3,
+        reasoning_model: StructuredReasoningModel | None = None,
     ) -> None:
         self.client = client
         self.critique_strategy = critique_strategy or CritiqueStrategy()
@@ -71,6 +74,7 @@ class ArenaRunner:
         self.operation_journal = operation_journal or InMemoryOperationJournal()
         self.sales_policy = sales_policy or SalesPolicy()
         self.max_concurrent_evaluations = max_concurrent_evaluations
+        self.reasoning_model = reasoning_model
 
     def product_introduction(self) -> str:
         return self.sales_policy.introduction
@@ -99,6 +103,7 @@ class ArenaRunner:
             checkpointer=self.checkpointer,
             operation_journal=self.operation_journal,
             max_concurrent_evaluations=self.max_concurrent_evaluations,
+            reasoning_model=self.reasoning_model,
         )
         active_run_id = run_id or str(uuid4())
         graph_input = {
@@ -124,6 +129,7 @@ class ArenaRunner:
             checkpointer=self.checkpointer,
             operation_journal=self.operation_journal,
             max_concurrent_evaluations=self.max_concurrent_evaluations,
+            reasoning_model=self.reasoning_model,
         )
         config = {"configurable": {"thread_id": run_id}}
         state = await graph.ainvoke(None, config=config)
@@ -141,10 +147,14 @@ async def persistent_arena_runner(
     market_strategy: MarketStrategy | None = None,
     sales_policy: SalesPolicy | None = None,
     max_concurrent_evaluations: int = 3,
+    reasoning_model: StructuredReasoningModel | None = None,
 ) -> AsyncIterator[ArenaRunner]:
     """Create a runner with both workflow and side-effect durability enabled."""
 
     active_settings = settings or Settings.from_env()
+    active_reasoning_model = reasoning_model
+    if active_reasoning_model is None and active_settings.model_api_key:
+        active_reasoning_model = OpenAICompatibleModel(active_settings)
     async with AsyncSqliteSaver.from_conn_string(
         active_settings.checkpoint_path
     ) as checkpointer:
@@ -158,4 +168,5 @@ async def persistent_arena_runner(
             ),
             sales_policy=sales_policy,
             max_concurrent_evaluations=max_concurrent_evaluations,
+            reasoning_model=active_reasoning_model,
         )
