@@ -1,5 +1,7 @@
 > 当前单次报告规则与产品边界以 [思棋 V1 冻结规范](docs/siqi/INTERACTION_REPORT_V1.md) 为准；[核查与交接](docs/siqi/AUDIT_AND_HANDOFF.md) 列出本文件中的历史规划冲突。Reputation Snapshot 尚未提供，不对外出售；新价格已确认并在本地实现，见[定价政策](docs/siqi/PRICING_DECISION.md)。
 
+正式 Arena 运行结果见 [2026-09-13 正式运行记录](docs/LIVE_RUN_2026-09-13.md)，运行与实验入口见 [运行日志索引](docs/RUN_LOG.md)。该记录区分了官方 credits 到账与业务 artifact 交付，不把未保存证据的环节写成已完成。
+
 # SharedOS Agent Commerce Network
 
 An autonomous buyer-and-seller agent for the SharedOS Hackathon. The implementation
